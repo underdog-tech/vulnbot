@@ -22,3 +22,6 @@ go.work
 
 # Local environment variables
 .env
+
+# This is the output of compiling `go build .`
+/dependabot-alert-bot
