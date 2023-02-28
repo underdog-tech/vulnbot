@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
+	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/shurcooL/githubv4"
@@ -12,40 +13,17 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type vulnerabilityAlert struct {
-	Id                    string
-	Number                int
-	SecurityVulnerability struct {
-		Severity string
-		Package  struct {
-			Ecosystem string
-			Name      string
-		}
-	}
+var ecosystemIcons = map[string]string{
+	"Go":       ":golang:",
+	"Npm":      ":javascript:",
+	"Pip":      ":python:",
+	"Rubygems": ":ruby:",
 }
-
-type repository struct {
-	Name                string
-	IsArchived          bool
-	VulnerabilityAlerts struct {
-		TotalCount int
-		Nodes      []vulnerabilityAlert
-	} `graphql:"vulnerabilityAlerts(first: 100, states: OPEN)"`
-}
-
-var alertQuery struct {
-	Organization struct {
-		Name         string
-		Login        string
-		Repositories struct {
-			TotalCount int
-			PageInfo   struct {
-				EndCursor   githubv4.String
-				HasNextPage bool
-			}
-			Nodes []repository
-		} `graphql:"repositories(orderBy: {field: NAME, direction: ASC}, isFork: false, first: 100, after: $reposCursor)"`
-	} `graphql:"organization(login: $login)"`
+var severityIcons = map[string]string{
+	"Critical": ":severity_highest:",
+	"High":     ":severity_high:",
+	"Moderate": ":severity_medium:",
+	"Low":      ":severity_low:",
 }
 
 func main() {
@@ -72,6 +50,7 @@ func main() {
 	// Gather all repositories, handling pagination
 	var allRepos []repository
 	for {
+		fmt.Println("Executing query against GitHub API.")
 		err := ghClient.Query(context.Background(), &alertQuery, queryVars)
 		if err != nil {
 			panic(err)
@@ -84,79 +63,68 @@ func main() {
 	}
 
 	// Count our vulnerabilities
+	fmt.Println("Collating results.")
 	var totalVulns int
-	vulnCounts := map[string]int{
-		"LOW":      0,
-		"MODERATE": 0,
-		"HIGH":     0,
-		"CRITICAL": 0,
+	var affectedRepos int
+	// We want these in a specific order, and always report empty elements
+	vulnsBySeverity := map[string]int{
+		"Critical": 0,
+		"High":     0,
+		"Moderate": 0,
+		"Low":      0,
 	}
+	vulnsByEcosystem := map[string]int{}
 
 	for _, repo := range allRepos {
-		totalVulns += repo.VulnerabilityAlerts.TotalCount
+		repoVulns := repo.VulnerabilityAlerts.TotalCount
+		totalVulns += repoVulns
+		if repoVulns > 0 {
+			affectedRepos += 1
+		}
 		for _, vuln := range repo.VulnerabilityAlerts.Nodes {
-			vulnCounts[vuln.SecurityVulnerability.Severity] += 1
+			// Tally by severity
+			severity := strings.Title(strings.ToLower(vuln.SecurityVulnerability.Severity))
+			vulnsBySeverity[severity] += 1
+
+			// Tally by ecosystem
+			ecosystem := strings.Title(strings.ToLower(vuln.SecurityVulnerability.Package.Ecosystem))
+			_, exists := vulnsByEcosystem[ecosystem]
+			if !exists {
+				vulnsByEcosystem[ecosystem] = 0
+			}
+			vulnsByEcosystem[ecosystem] += 1
 		}
 	}
 
-	summaryAttachment := slack.Attachment{
-		Text:  "Dependabot Vulnerability Report",
-		Color: "569cd6",
-		Fields: []slack.AttachmentField{
-			{
-				Title: "Org name",
-				Value: alertQuery.Organization.Name,
-			},
-			{
-				Title: "Total Repository Count",
-				Value: strconv.Itoa(alertQuery.Organization.Repositories.TotalCount),
-			},
-			{
-				Title: "Total Vulnerability Count",
-				Value: strconv.Itoa(totalVulns),
-			},
-		},
-	}
-	criticalAttachment := slack.Attachment{
-		Color: "f85149",
-		Fields: []slack.AttachmentField{
-			{
-				Title: "Critical vulnerabilities",
-				Value: strconv.Itoa(vulnCounts["CRITICAL"]),
-			},
-		},
-	}
-	highAttachment := slack.Attachment{
-		Color: "db6d28",
-		Fields: []slack.AttachmentField{
-			{
-				Title: "High vulnerabilities",
-				Value: strconv.Itoa(vulnCounts["HIGH"]),
-			},
-		},
-	}
-	moderateAttachment := slack.Attachment{
-		Color: "d29922",
-		Fields: []slack.AttachmentField{
-			{
-				Title: "Moderate vulnerabilities",
-				Value: strconv.Itoa(vulnCounts["MODERATE"]),
-			},
-		},
-	}
-	lowAttachment := slack.Attachment{
-		Color: "c9d1d9",
-		Fields: []slack.AttachmentField{
-			{
-				Title: "Low vulnerabilities",
-				Value: strconv.Itoa(vulnCounts["LOW"]),
-			},
-		},
-	}
+	reportTime := time.Now().Format(time.RFC1123)
+	summary := fmt.Sprintf("*%s Dependabot Report for %s*\nTotal repositories: %d\nTotal vulnerabilities: %d\nAffected repositories: %d\n", alertQuery.Organization.Name, reportTime, alertQuery.Organization.Repositories.TotalCount, totalVulns, affectedRepos)
+	fmt.Print(summary)
 
+	severityReport := "*Breakdown by Severity*\n"
+	for severity, vulnCount := range vulnsBySeverity {
+		icon, exists := severityIcons[severity]
+		if !exists {
+			icon = ""
+		}
+		severityReport = fmt.Sprintf("%s%s %s: %d\n", severityReport, icon, severity, vulnCount)
+	}
+	fmt.Print(severityReport)
+
+	ecosystemReport := "*Breakdown by Ecosystem*\n"
+	for ecosystem, vulnCount := range vulnsByEcosystem {
+		icon, exists := ecosystemIcons[ecosystem]
+		if !exists {
+			icon = ""
+		}
+		ecosystemReport = fmt.Sprintf("%s%s %s: %d\n", ecosystemReport, icon, ecosystem, vulnCount)
+	}
+	fmt.Print(ecosystemReport)
+
+	fullReport := fmt.Sprintf("%s\n%s\n%s", summary, severityReport, ecosystemReport)
 	_, timestamp, err := slackClient.PostMessage(
 		channelID,
-		slack.MsgOptionAttachments(summaryAttachment, criticalAttachment, highAttachment, moderateAttachment, lowAttachment),
+		slack.MsgOptionText(fullReport, false),
+		slack.MsgOptionAsUser(true),
 	)
 
 	if err != nil {
