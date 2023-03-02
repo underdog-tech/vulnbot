@@ -25,3 +25,6 @@ go.work
 
 # This is the output of compiling `go build .`
 /dependabot-alert-bot
+
+# Config is going to differ per deployment, so don't commit it
+config.toml

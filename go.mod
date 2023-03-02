@@ -3,6 +3,7 @@ module dependabot-alert-bot
 go 1.16
 
 require (
+	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/shurcooL/githubv4 v0.0.0-20230215024106-420ad0987b9b // indirect
