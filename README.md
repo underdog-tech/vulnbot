@@ -27,11 +27,11 @@ found in `config.example.toml`.
 Once these files are in place, simply run `go run .` or
 `go build . && ./dependabot-alert-bot`!
 
-Alternately you can run this in Docker (not currently playing friendly with config):
+Alternately you can run this in Docker:
 
 ```sh
 docker build . -t dependabot-alert-bot
-docker run --env-file .env dependabot-alert-bot
+docker run --env-file .env -v ./config.toml:/app/config.toml dependabot-alert-bot
 ```
 
 Building and running a Docker image would be helpful if, for example, you wanted
