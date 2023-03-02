@@ -1,0 +1,42 @@
+default_slack_channel = "asdfqwer"
+
+# Configure the ecosystems we're reporting on
+[[ecosystem]]
+label = "Go"
+slack_emoji = ":golang:"
+
+[[ecosystem]]
+label = "Npm"
+slack_emoji = ":javascript:"
+
+[[ecosystem]]
+label = "Pip"
+slack_emoji = ":python:"
+
+[[ecosystem]]
+label = "Rubygems"
+slack_emoji = ":ruby:"
+
+# Configure the severities we're reporting on
+[[severity]]
+label = "Critical"
+slack_emoji = ":severity_highest:"
+
+[[severity]]
+label = "High"
+slack_emoji = ":severity_high:"
+
+[[severity]]
+label = "Moderate"
+slack_emoji = ":severity_medium:"
+
+[[severity]]
+label = "Low"
+slack_emoji = ":severity_low:"
+
+# Configure individual teams to report directly on their work
+[[team]]
+name = "Some Team"
+github_slug = "some-team"
+slack_channel = "abcdefgh"
+repositories = ["project1", "super_critical_work", "other_stuff"]
