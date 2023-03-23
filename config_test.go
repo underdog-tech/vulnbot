@@ -41,36 +41,19 @@ func TestGetIconForConfiguredEcosystem(t *testing.T) {
 	checkFail(t, icon, expected)
 }
 
-func TestGetConfiguredRepositoryOwner(t *testing.T) {
-	testersTeam := teamConfig{Name: "Testers", Repositories: []string{"good-stuff", "broken-stuff"}}
-	failersTeam := teamConfig{Name: "Failers", Repositories: []string{"other-stuff"}}
+func TestGetConfiguredTeamConfigBySlug(t *testing.T) {
+	testersTeam := teamConfig{Name: "Testers", Github_slug: "testers-team"}
+	failersTeam := teamConfig{Name: "Failers", Github_slug: "failers-team"}
 	teamConfigs := []teamConfig{
 		testersTeam,
 		failersTeam,
 	}
-	owner := getRepositoryOwner("broken-stuff", teamConfigs)
-	checkFail(t, owner, testersTeam)
-}
-
-func TestGetUnconfiguredRepositoryOwner(t *testing.T) {
-	teamConfigs := []teamConfig{} // Empty is easiest for this purpose
-	owner := getRepositoryOwner("unknown", teamConfigs)
-	checkFail(t, owner, teamConfig{})
-}
-
-func TestGetConfiguredTeamConfigByName(t *testing.T) {
-	testersTeam := teamConfig{Name: "Testers", Repositories: []string{"good-stuff", "broken-stuff"}}
-	failersTeam := teamConfig{Name: "Failers", Repositories: []string{"other-stuff"}}
-	teamConfigs := []teamConfig{
-		testersTeam,
-		failersTeam,
-	}
-	team := getTeamConfigByName("Testers", teamConfigs)
+	team := getTeamConfigBySlug("testers-team", teamConfigs)
 	checkFail(t, team, testersTeam)
 }
 
-func TestGetUnconfiguredTeamConfigByName(t *testing.T) {
+func TestGetUnconfiguredTeamConfigBySlug(t *testing.T) {
 	teamConfigs := []teamConfig{} // Empty is easiest for this purpose
-	team := getTeamConfigByName("Unknown", teamConfigs)
+	team := getTeamConfigBySlug("unknown-team", teamConfigs)
 	checkFail(t, team, teamConfig{})
 }
