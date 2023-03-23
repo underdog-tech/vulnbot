@@ -43,7 +43,7 @@ type orgVulnerabilityQuery struct {
 	} `graphql:"organization(login: $login)"`
 }
 
-func getGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) (orgName string, repositories []vulnerabilityRepository) {
+func queryGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) (orgName string, repositories []vulnerabilityRepository) {
 	var alertQuery orgVulnerabilityQuery
 
 	// Construct the variables necessary for our GraphQL query
@@ -64,6 +64,7 @@ func getGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) (o
 		if !alertQuery.Organization.Repositories.PageInfo.HasNextPage {
 			break
 		}
+		// TODO: Handle pagination of vulnerabilities in a repository
 		queryVars["reposCursor"] = githubv4.NewString(alertQuery.Organization.Repositories.PageInfo.EndCursor)
 	}
 
@@ -100,7 +101,7 @@ type orgRepositoryOwnerQuery struct {
 	} `graphql:"organization(login: $login)"`
 }
 
-func getGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client) map[string][]string {
+func queryGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client) map[string][]string {
 	var ownerQuery orgRepositoryOwnerQuery
 
 	queryVars := map[string]interface{}{
@@ -118,7 +119,7 @@ func getGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client) m
 			panic(err)
 		}
 		for _, team := range ownerQuery.Organization.Teams.Nodes {
-			fmt.Printf("Found team %s; slug: %s\n", team.Name, team.Slug)
+			// TODO: Handle pagination of repositories owned by a team.
 			for _, repo := range team.Repositories.Edges {
 				switch repo.Permission {
 				case "ADMIN", "MAINTAIN":
@@ -137,6 +138,6 @@ func getGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client) m
 		}
 		queryVars["teamsCursor"] = githubv4.NewString(ownerQuery.Organization.Teams.PageInfo.EndCursor)
 	}
-	fmt.Printf("Found repos: %v", allRepos)
+	fmt.Printf("Found repos: %v\n", allRepos)
 	return allRepos
 }
