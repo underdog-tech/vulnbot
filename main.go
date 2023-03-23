@@ -165,7 +165,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("Message sent at %s", timestamp)
+			fmt.Printf("Message sent to %s at %s\n", channel, timestamp)
 		}
 	} else {
 		fmt.Println("No Slack token found. Skipping communication.")
