@@ -18,7 +18,6 @@ type teamConfig struct {
 	Name          string
 	Github_slug   string
 	Slack_channel string
-	Repositories  []string
 }
 
 type tomlConfig struct {
@@ -56,20 +55,9 @@ func getIconForEcosystem(ecosystem string, ecosystems []ecosystemConfig) string 
 	return " "
 }
 
-func getRepositoryOwner(repoName string, teams []teamConfig) teamConfig {
+func getTeamConfigBySlug(teamSlug string, teams []teamConfig) teamConfig {
 	for _, team := range teams {
-		for _, repo := range team.Repositories {
-			if repo == repoName {
-				return team
-			}
-		}
-	}
-	return teamConfig{}
-}
-
-func getTeamConfigByName(teamName string, teams []teamConfig) teamConfig {
-	for _, team := range teams {
-		if team.Name == teamName {
+		if team.Github_slug == teamSlug {
 			return team
 		}
 	}

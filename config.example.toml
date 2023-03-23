@@ -39,4 +39,3 @@ slack_emoji = ":severity_low:"
 name = "Some Team"
 github_slug = "some-team"
 slack_channel = "abcdefgh"
-repositories = ["project1", "super_critical_work", "other_stuff"]

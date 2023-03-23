@@ -41,6 +41,15 @@ func newSeverityMap() map[string]int {
 	}
 }
 
+func getRepositoryOwners(repoName string, repositoryOwners map[string][]string) []string {
+	owners, exists := repositoryOwners[repoName]
+	if !exists {
+		fmt.Printf("No owners found for repository: %s\n", repoName)
+		return []string{}
+	}
+	return owners
+}
+
 func main() {
 	// Load the configuration file
 	config := loadConfig()
@@ -59,14 +68,15 @@ func main() {
 	httpClient := oauth2.NewClient(context.Background(), ghTokenSource)
 	ghClient := githubv4.NewClient(httpClient)
 
-	ghOrgName, allRepos := getGithubOrgVulnerabilities(ghOrgLogin, *ghClient)
+	ghOrgName, allRepos := queryGithubOrgVulnerabilities(ghOrgLogin, *ghClient)
+	repositoryOwners := queryGithubOrgRepositoryOwners(ghOrgLogin, *ghClient)
 	// Count our vulnerabilities
 	fmt.Println("Collating results.")
 	var totalVulns int
 	var affectedRepos int
 	vulnsBySeverity := newSeverityMap()
 	vulnsByEcosystem := map[string]int{}
-	vulnsByTeam := map[string][]repository{}
+	vulnsByTeam := map[string][]vulnerabilityRepository{}
 
 	for _, repo := range allRepos {
 		repoVulns := repo.VulnerabilityAlerts.TotalCount
@@ -74,13 +84,15 @@ func main() {
 		if repoVulns > 0 {
 			affectedRepos += 1
 		}
-		team := getRepositoryOwner(repo.Name, config.Team)
-		if repoVulns > 0 && !reflect.DeepEqual(team, teamConfig{}) {
-			_, exists := vulnsByTeam[team.Name]
-			if !exists {
-				vulnsByTeam[team.Name] = make([]repository, 0)
+		owners := getRepositoryOwners(repo.Name, repositoryOwners)
+		if repoVulns > 0 && len(owners) > 0 {
+			for _, slug := range owners {
+				_, exists := vulnsByTeam[slug]
+				if !exists {
+					vulnsByTeam[slug] = make([]vulnerabilityRepository, 0)
+				}
+				vulnsByTeam[slug] = append(vulnsByTeam[slug], repo)
 			}
-			vulnsByTeam[team.Name] = append(vulnsByTeam[team.Name], repo)
 		}
 
 		tallyVulnsBySeverity(repo.VulnerabilityAlerts.Nodes, vulnsBySeverity)
@@ -114,6 +126,7 @@ func main() {
 		teamVulnsByEcosystem := map[string]int{}
 		totalVulns = 0
 		teamReport := ""
+		teamInfo := getTeamConfigBySlug(team, config.Team)
 		for _, repo := range repos {
 			repoVulnsBySeverity := newSeverityMap()
 			tallyVulnsBySeverity(repo.VulnerabilityAlerts.Nodes, repoVulnsBySeverity)
@@ -127,11 +140,17 @@ func main() {
 			tallyVulnsByEcosystem(repo.VulnerabilityAlerts.Nodes, teamVulnsByEcosystem)
 			teamReport += repoReport
 		}
-		teamSummary := fmt.Sprintf("*%s Dependabot Report for %s*\nAffected repositories: %d\nTotal vulnerabilities: %d\n", team, reportTime, len(repos), totalVulns)
+		if reflect.DeepEqual(teamInfo, teamConfig{}) {
+			fmt.Printf("Skipping report for unconfigured team: %s\n", team)
+			continue
+		}
+		teamSummary := fmt.Sprintf("*%s Dependabot Report for %s*\nAffected repositories: %d\nTotal vulnerabilities: %d\n", teamInfo.Name, reportTime, len(repos), totalVulns)
 		teamReport = teamSummary + teamReport + "\n"
-		// fmt.Print(teamReport)
-		teamInfo := getTeamConfigByName(team, config.Team)
-		slackMessages[teamInfo.Slack_channel] = teamReport
+		if teamInfo.Slack_channel != "" {
+			slackMessages[teamInfo.Slack_channel] = teamReport
+		} else {
+			fmt.Print(teamReport)
+		}
 	}
 
 	if len(slackToken) > 0 {
@@ -146,10 +165,10 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("Message sent at %s", timestamp)
+			fmt.Printf("Message sent to %s at %s\n", channel, timestamp)
 		}
 	} else {
 		fmt.Println("No Slack token found. Skipping communication.")
-		fmt.Print(slackMessages)
+		fmt.Println(slackMessages)
 	}
 }
