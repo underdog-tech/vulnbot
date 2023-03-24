@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dependabot-alert-bot/logger"
 	"fmt"
 	"os"
 	"reflect"
@@ -42,22 +43,25 @@ func newSeverityMap() map[string]int {
 }
 
 func getRepositoryOwners(repoName string, repositoryOwners map[string][]string) []string {
+	log := logger.Get()
 	owners, exists := repositoryOwners[repoName]
 	if !exists {
-		fmt.Printf("No owners found for repository: %s\n", repoName)
+		log.Warn().Str("repo", repoName).Msg("No owners found for repository.")
 		return []string{}
 	}
 	return owners
 }
 
 func main() {
+	log := logger.Get()
+
 	// Load the configuration file
 	config := loadConfig()
 
 	// Gather credentials from the environment
 	godotenv.Load(".env")
 
-	fmt.Printf("Config: %v\n", config)
+	log.Debug().Any("config", config).Msg("Loaded config.")
 
 	ghTokenSource := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
@@ -71,7 +75,7 @@ func main() {
 	ghOrgName, allRepos := queryGithubOrgVulnerabilities(ghOrgLogin, *ghClient)
 	repositoryOwners := queryGithubOrgRepositoryOwners(ghOrgLogin, *ghClient)
 	// Count our vulnerabilities
-	fmt.Println("Collating results.")
+	log.Info().Msg("Collating results.")
 	var totalVulns int
 	var affectedRepos int
 	vulnsBySeverity := newSeverityMap()
@@ -99,7 +103,7 @@ func main() {
 		tallyVulnsByEcosystem(repo.VulnerabilityAlerts.Nodes, vulnsByEcosystem)
 	}
 
-	fmt.Printf("Identified %d distinct teams\n%v\n\n", len(vulnsByTeam), vulnsByTeam)
+	log.Debug().Any("vulnsByTeam", vulnsByTeam).Msgf("Identified %d distinct teams", len(vulnsByTeam))
 	reportTime := time.Now().Format(time.RFC1123)
 	summary := fmt.Sprintf("*%s Dependabot Report for %s*\nTotal repositories: %d\nTotal vulnerabilities: %d\nAffected repositories: %d\n", ghOrgName, reportTime, len(allRepos), totalVulns, affectedRepos)
 
@@ -141,7 +145,7 @@ func main() {
 			teamReport += repoReport
 		}
 		if reflect.DeepEqual(teamInfo, teamConfig{}) {
-			fmt.Printf("Skipping report for unconfigured team: %s\n", team)
+			log.Warn().Str("team", team).Msg("Skipping report for unconfigured team.")
 			continue
 		}
 		teamSummary := fmt.Sprintf("*%s Dependabot Report for %s*\nAffected repositories: %d\nTotal vulnerabilities: %d\n", teamInfo.Name, reportTime, len(repos), totalVulns)
@@ -149,10 +153,11 @@ func main() {
 		if teamInfo.Slack_channel != "" {
 			slackMessages[teamInfo.Slack_channel] = teamReport
 		} else {
-			fmt.Print(teamReport)
+			log.Debug().Str("team", team).Str("teamReport", teamReport).Msg("Discarding team report because no Slack channel configured.")
 		}
 	}
 
+	log.Debug().Any("slackMessages", slackMessages).Msg("Messages generated for Slack.")
 	if len(slackToken) > 0 {
 		slackClient := slack.New(slackToken, slack.OptionDebug(true))
 		for channel, message := range slackMessages {
@@ -165,10 +170,10 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("Message sent to %s at %s\n", channel, timestamp)
+			log.Info().Str("channel", channel).Str("timestamp", timestamp).Msg("Message sent to Slack.")
 		}
 	} else {
-		fmt.Println("No Slack token found. Skipping communication.")
-		fmt.Println(slackMessages)
+		log.Warn().Msg("No Slack token found. Skipping communication.")
 	}
+	log.Info().Msg("Done!")
 }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"dependabot-alert-bot/logger"
 
 	"github.com/shurcooL/githubv4"
 )
@@ -45,6 +45,7 @@ type orgVulnerabilityQuery struct {
 
 func queryGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) (orgName string, repositories []vulnerabilityRepository) {
 	var alertQuery orgVulnerabilityQuery
+	log := logger.Get()
 
 	// Construct the variables necessary for our GraphQL query
 	queryVars := map[string]interface{}{
@@ -55,7 +56,7 @@ func queryGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) 
 	// Gather all repositories, handling pagination
 	var allRepos []vulnerabilityRepository
 	for {
-		fmt.Println("Querying GitHub API for vulnerable repositories.")
+		log.Info().Msg("Querying GitHub API for vulnerable repositories.")
 		err := ghClient.Query(context.Background(), &alertQuery, queryVars)
 		if err != nil {
 			panic(err)
@@ -103,6 +104,7 @@ type orgRepositoryOwnerQuery struct {
 
 func queryGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client) map[string][]string {
 	var ownerQuery orgRepositoryOwnerQuery
+	log := logger.Get()
 
 	queryVars := map[string]interface{}{
 		"login":       githubv4.String(ghOrgLogin),
@@ -113,7 +115,7 @@ func queryGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client)
 	// Gather all teams and all repositories they own, handling pagination for each
 	allRepos := map[string][]string{}
 	for {
-		fmt.Println("Querying GitHub API for repository ownership information.")
+		log.Info().Msg("Querying GitHub API for repository ownership information.")
 		err := ghClient.Query(context.Background(), &ownerQuery, queryVars)
 		if err != nil {
 			panic(err)
@@ -138,6 +140,6 @@ func queryGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client)
 		}
 		queryVars["teamsCursor"] = githubv4.NewString(ownerQuery.Organization.Teams.PageInfo.EndCursor)
 	}
-	fmt.Printf("Found repos: %v\n", allRepos)
+	log.Debug().Any("repos", allRepos).Msg("Repositories loaded.")
 	return allRepos
 }
