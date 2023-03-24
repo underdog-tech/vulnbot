@@ -17,9 +17,9 @@ var log zerolog.Logger
 
 func Get() zerolog.Logger {
 	once.Do(func() {
-		logLevel, err := strconv.Atoi(os.Getenv("LOG_LEVEL"))
+		logLevel, err := strconv.ParseInt(os.Getenv("LOG_LEVEL"), 10, 64)
 		if err != nil {
-			logLevel = int(zerolog.InfoLevel) // Default to INFO
+			logLevel = int64(zerolog.InfoLevel) // Default to INFO
 		}
 
 		var output io.Writer = zerolog.ConsoleWriter{
