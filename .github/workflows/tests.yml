@@ -2,9 +2,9 @@ name: Go
 
 on:
   push:
-    branches: [ $default-branch ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ $default-branch ]
+    branches: [ "main" ]
 
 jobs:
 
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.16', '1.17', '1.18', '1.19']
+        go: ['1.18', '1.19', '1.20']
     name: Build & test with Go ${{ matrix.go }}
     steps:
     - uses: actions/checkout@v3
