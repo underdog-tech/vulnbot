@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -18,6 +19,8 @@ var log zerolog.Logger
 func Get() zerolog.Logger {
 	once.Do(func() {
 		var logLevel int8
+
+		zerolog.TimeFieldFormat = time.RFC3339Nano
 		parsed, err := strconv.ParseInt(os.Getenv("LOG_LEVEL"), 10, 8)
 		if err != nil {
 			logLevel = int8(zerolog.InfoLevel) // Default to INFO
@@ -26,7 +29,8 @@ func Get() zerolog.Logger {
 		}
 
 		var output io.Writer = zerolog.ConsoleWriter{
-			Out: os.Stdout,
+			Out:        os.Stdout,
+			TimeFormat: time.RFC3339,
 		}
 
 		buildInfo, _ := debug.ReadBuildInfo()
