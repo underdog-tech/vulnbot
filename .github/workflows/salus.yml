@@ -1,0 +1,15 @@
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  salus_scan_job:
+    runs-on: ubuntu-latest
+    name: Salus Security Scan
+    steps:
+    - uses: actions/checkout@v3
+    - name: Salus Scan
+      id: salus_scan
+      uses: federacy/scan-action@0.1.4
