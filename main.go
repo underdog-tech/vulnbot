@@ -59,7 +59,10 @@ func main() {
 	config := loadConfig()
 
 	// Gather credentials from the environment
-	godotenv.Load(".env")
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal().Msg("Error loading .env file")
+	}
 
 	log.Debug().Any("config", config).Msg("Loaded config.")
 
