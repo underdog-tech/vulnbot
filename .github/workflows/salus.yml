@@ -15,3 +15,5 @@ jobs:
     - name: Salus Scan
       id: salus_scan
       uses: federacy/scan-action@0.1.4
+      with:
+        active_scanners: "\n  - GoOSV\n  - GoPackageScanner\n  - Gosec\n  - PatternSearch\n  - ReportGoDep\n  - Trufflehog"
