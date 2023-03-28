@@ -12,6 +12,11 @@ jobs:
     name: Salus Security Scan
     steps:
     - uses: actions/checkout@v3
+    # https://github.com/coinbase/salus/issues/828
+    - uses: actions-rs/install@v0.1
+      with:
+        crate: cargo-audit
+        version: latest
     - name: Salus Scan
       id: salus_scan
       uses: federacy/scan-action@0.1.4
