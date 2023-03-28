@@ -1,0 +1,8 @@
+---
+active_scanners:
+  - GoOSV
+  - GoPackageScanner
+  - Gosec
+  - PatternSearch
+  - ReportGoDep
+  - Trufflehog
