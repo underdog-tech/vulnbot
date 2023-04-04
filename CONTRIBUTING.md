@@ -107,6 +107,13 @@ We generally follow [Conventional Commit] styling for our commit messages. While
 this is not enforced at this time, it may be in the future to enable further
 automation in our CI/CD process.
 
+Additionally, due to the potentially sensitive nature of the data this project
+is designed to work with, we require that ALL commits to this repository be
+signed, preferably with a GPG key. This is essentially a way to prove that the
+person committing the code is who they say they are, and prevents other people
+from committing code on their behalf. More information can be found in GitHub's
+excellent documentation: [Signing commits]
+
 ## Testing
 
 While it may not always achieve this goal, we strive for this codebase to be
@@ -135,3 +142,4 @@ merged.
 [homebrew]: https://brew.sh/
 [official Go releases page]: https://go.dev/dl/
 [private vulnerability reporting]: https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing/privately-reporting-a-security-vulnerability#privately-reporting-a-security-vulnerability
+[Signing commits]: https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits
