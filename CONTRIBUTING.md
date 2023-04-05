@@ -135,6 +135,7 @@ merged.
 
 
 [asdf]: https://asdf-vm.com/
+[Conventional Commit]: https://www.conventionalcommits.org/en/v1.0.0/
 [discussions]: https://github.com/underdog-tech/dependabot-alert-bot/discussions
 [EditorConfig]: https://editorconfig.org/
 [Effective Go]: https://go.dev/doc/effective_go
