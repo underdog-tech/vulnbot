@@ -52,6 +52,29 @@ func getRepositoryOwners(repoName string, repositoryOwners map[string][]string) 
 	return owners
 }
 
+type vulnerabilityReport struct {
+	TotalCount       int
+	AffectedRepos    int
+	VulnsByEcosystem map[string]int
+	VulnsBySeverity  map[string]int
+}
+
+func collateSummaryReport(repos []vulnerabilityRepository) (report vulnerabilityReport) {
+	log := logger.Get()
+	report = vulnerabilityReport{TotalCount: 0, VulnsBySeverity: newSeverityMap(), VulnsByEcosystem: map[string]int{}}
+	for _, repo := range repos {
+		repoVulns := repo.VulnerabilityAlerts.TotalCount
+		report.TotalCount += repoVulns
+		if repoVulns > 0 {
+			report.AffectedRepos += 1
+		}
+		tallyVulnsBySeverity(repo.VulnerabilityAlerts.Nodes, report.VulnsBySeverity)
+		tallyVulnsByEcosystem(repo.VulnerabilityAlerts.Nodes, report.VulnsByEcosystem)
+	}
+	log.Debug().Any("report", report).Msg("Collated summary report.")
+	return report
+}
+
 func main() {
 	log := logger.Get()
 
@@ -63,8 +86,6 @@ func main() {
 	if err != nil {
 		log.Fatal().Msg("Error loading .env file")
 	}
-
-	log.Debug().Any("config", config).Msg("Loaded config.")
 
 	ghTokenSource := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
@@ -79,18 +100,15 @@ func main() {
 	repositoryOwners := queryGithubOrgRepositoryOwners(ghOrgLogin, *ghClient)
 	// Count our vulnerabilities
 	log.Info().Msg("Collating results.")
-	var totalVulns int
-	var affectedRepos int
+
+	summaryReport := collateSummaryReport(allRepos)
+
 	vulnsBySeverity := newSeverityMap()
 	vulnsByEcosystem := map[string]int{}
 	vulnsByTeam := map[string][]vulnerabilityRepository{}
 
 	for _, repo := range allRepos {
 		repoVulns := repo.VulnerabilityAlerts.TotalCount
-		totalVulns += repoVulns
-		if repoVulns > 0 {
-			affectedRepos += 1
-		}
 		owners := getRepositoryOwners(repo.Name, repositoryOwners)
 		if repoVulns > 0 && len(owners) > 0 {
 			for _, slug := range owners {
@@ -101,14 +119,11 @@ func main() {
 				vulnsByTeam[slug] = append(vulnsByTeam[slug], repo)
 			}
 		}
-
-		tallyVulnsBySeverity(repo.VulnerabilityAlerts.Nodes, vulnsBySeverity)
-		tallyVulnsByEcosystem(repo.VulnerabilityAlerts.Nodes, vulnsByEcosystem)
 	}
 
 	log.Debug().Any("vulnsByTeam", vulnsByTeam).Msgf("Identified %d distinct teams", len(vulnsByTeam))
 	reportTime := time.Now().Format(time.RFC1123)
-	summary := fmt.Sprintf("*%s Dependabot Report for %s*\nTotal repositories: %d\nTotal vulnerabilities: %d\nAffected repositories: %d\n", ghOrgName, reportTime, len(allRepos), totalVulns, affectedRepos)
+	summary := fmt.Sprintf("*%s Dependabot Report for %s*\nTotal repositories: %d\nTotal vulnerabilities: %d\nAffected repositories: %d\n", ghOrgName, reportTime, len(allRepos), summaryReport.TotalCount, summaryReport.AffectedRepos)
 
 	severityReport := "*Breakdown by Severity*\n"
 	for severity, vulnCount := range vulnsBySeverity {
@@ -131,7 +146,7 @@ func main() {
 	for team, repos := range vulnsByTeam {
 		teamVulnsBySeverity := newSeverityMap()
 		teamVulnsByEcosystem := map[string]int{}
-		totalVulns = 0
+		totalVulns := 0
 		teamReport := ""
 		teamInfo := getTeamConfigBySlug(team, config.Team)
 		for _, repo := range repos {
