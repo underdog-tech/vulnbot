@@ -15,6 +15,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// Used to represent repositories whose owner cannot be automatically detected
+const NO_OWNER_KEY = "__none__"
+const SUMMARY_KEY = "summary"
+
 func tallyVulnsBySeverity(vulns []vulnerabilityAlert, vulnCounts map[string]int) {
 	for _, vuln := range vulns {
 		severity := strings.Title(strings.ToLower(vuln.SecurityVulnerability.Severity))
@@ -33,7 +37,7 @@ func tallyVulnsByEcosystem(vulns []vulnerabilityAlert, vulnCounts map[string]int
 	}
 }
 
-func newSeverityMap() map[string]int {
+func NewSeverityMap() map[string]int {
 	return map[string]int{
 		"Critical": 0,
 		"High":     0,
@@ -59,9 +63,18 @@ type vulnerabilityReport struct {
 	VulnsBySeverity  map[string]int
 }
 
+func NewVulnerabilityReport() vulnerabilityReport {
+	return vulnerabilityReport{
+		AffectedRepos:    0,
+		TotalCount:       0,
+		VulnsBySeverity:  NewSeverityMap(),
+		VulnsByEcosystem: map[string]int{},
+	}
+}
+
 func collateSummaryReport(repos []vulnerabilityRepository) (report vulnerabilityReport) {
 	log := logger.Get()
-	report = vulnerabilityReport{TotalCount: 0, VulnsBySeverity: newSeverityMap(), VulnsByEcosystem: map[string]int{}}
+	report = NewVulnerabilityReport()
 	for _, repo := range repos {
 		repoVulns := repo.VulnerabilityAlerts.TotalCount
 		report.TotalCount += repoVulns
@@ -73,6 +86,52 @@ func collateSummaryReport(repos []vulnerabilityRepository) (report vulnerability
 	}
 	log.Debug().Any("report", report).Msg("Collated summary report.")
 	return report
+}
+
+func collateTeamReports(repos []vulnerabilityRepository, owners map[string][]string) (teamReports map[string]map[string]vulnerabilityReport) {
+	log := logger.Get()
+
+	vulnsByTeam := map[string][]vulnerabilityRepository{}
+	// First, group up the repositories by owner
+	for _, repo := range repos {
+		owners := getRepositoryOwners(repo.Name, owners)
+		if len(owners) == 0 {
+			owners = []string{NO_OWNER_KEY}
+		}
+		for _, slug := range owners {
+			_, exists := vulnsByTeam[slug]
+			if !exists {
+				vulnsByTeam[slug] = make([]vulnerabilityRepository, 0)
+			}
+			vulnsByTeam[slug] = append(vulnsByTeam[slug], repo)
+		}
+	}
+	// Then create a report for each owner
+	teamReports = map[string]map[string]vulnerabilityReport{}
+	for team, repos := range vulnsByTeam {
+		_, exists := teamReports[team]
+		if !exists {
+			teamReports[team] = map[string]vulnerabilityReport{}
+		}
+		teamReports[team][SUMMARY_KEY] = NewVulnerabilityReport()
+		for _, repo := range repos {
+			summaryReport, _ := teamReports[team][SUMMARY_KEY]
+			summaryReport.AffectedRepos += 1
+			repoReport := NewVulnerabilityReport()
+			tallyVulnsByEcosystem(repo.VulnerabilityAlerts.Nodes, repoReport.VulnsByEcosystem)
+			tallyVulnsByEcosystem(repo.VulnerabilityAlerts.Nodes, summaryReport.VulnsByEcosystem)
+			tallyVulnsBySeverity(repo.VulnerabilityAlerts.Nodes, repoReport.VulnsBySeverity)
+			for severity, count := range repoReport.VulnsBySeverity {
+				summaryReport.VulnsBySeverity[severity] += count
+				summaryReport.TotalCount += count
+				repoReport.TotalCount += count
+			}
+			teamReports[team][SUMMARY_KEY] = summaryReport
+			teamReports[team][repo.Name] = repoReport
+		}
+		log.Debug().Str("team", team).Any("teamReport", teamReports[team]).Msg("Completed team report.")
+	}
+	return teamReports
 }
 
 func main() {
@@ -102,8 +161,9 @@ func main() {
 	log.Info().Msg("Collating results.")
 
 	summaryReport := collateSummaryReport(allRepos)
+	collateTeamReports(allRepos, repositoryOwners)
 
-	vulnsBySeverity := newSeverityMap()
+	vulnsBySeverity := NewSeverityMap()
 	vulnsByEcosystem := map[string]int{}
 	vulnsByTeam := map[string][]vulnerabilityRepository{}
 
@@ -144,13 +204,13 @@ func main() {
 	}
 
 	for team, repos := range vulnsByTeam {
-		teamVulnsBySeverity := newSeverityMap()
+		teamVulnsBySeverity := NewSeverityMap()
 		teamVulnsByEcosystem := map[string]int{}
 		totalVulns := 0
 		teamReport := ""
 		teamInfo := getTeamConfigBySlug(team, config.Team)
 		for _, repo := range repos {
-			repoVulnsBySeverity := newSeverityMap()
+			repoVulnsBySeverity := NewSeverityMap()
 			tallyVulnsBySeverity(repo.VulnerabilityAlerts.Nodes, repoVulnsBySeverity)
 			repoReport := fmt.Sprintf("*%s* -- ", repo.Name)
 			for severity, count := range repoVulnsBySeverity {
