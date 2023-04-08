@@ -137,6 +137,28 @@ func collateTeamReports(vulnsByTeam map[string][]vulnerabilityRepository) (teamR
 	return teamReports
 }
 
+func sendSlackMessages(slackToken string, messages map[string]string) {
+	log := logger.Get()
+
+	if len(slackToken) > 0 {
+		slackClient := slack.New(slackToken, slack.OptionDebug(true))
+		for channel, message := range messages {
+			_, timestamp, err := slackClient.PostMessage(
+				channel,
+				slack.MsgOptionText(message, false),
+				slack.MsgOptionAsUser(true),
+			)
+
+			if err != nil {
+				panic(err)
+			}
+			log.Info().Str("channel", channel).Str("timestamp", timestamp).Msg("Message sent to Slack.")
+		}
+	} else {
+		log.Warn().Msg("No Slack token found. Skipping communication.")
+	}
+}
+
 func main() {
 	log := logger.Get()
 
@@ -234,22 +256,6 @@ func main() {
 	}
 
 	log.Debug().Any("slackMessages", slackMessages).Msg("Messages generated for Slack.")
-	if len(slackToken) > 0 {
-		slackClient := slack.New(slackToken, slack.OptionDebug(true))
-		for channel, message := range slackMessages {
-			_, timestamp, err := slackClient.PostMessage(
-				channel,
-				slack.MsgOptionText(message, false),
-				slack.MsgOptionAsUser(true),
-			)
-
-			if err != nil {
-				panic(err)
-			}
-			log.Info().Str("channel", channel).Str("timestamp", timestamp).Msg("Message sent to Slack.")
-		}
-	} else {
-		log.Warn().Msg("No Slack token found. Skipping communication.")
-	}
+	sendSlackMessages(slackToken, slackMessages)
 	log.Info().Msg("Done!")
 }
