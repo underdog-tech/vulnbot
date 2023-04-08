@@ -88,9 +88,7 @@ func collateSummaryReport(repos []vulnerabilityRepository) (report vulnerability
 	return report
 }
 
-func collateTeamReports(repos []vulnerabilityRepository, owners map[string][]string) (teamReports map[string]map[string]vulnerabilityReport) {
-	log := logger.Get()
-
+func groupVulnsByOwner(repos []vulnerabilityRepository, owners map[string][]string) map[string][]vulnerabilityRepository {
 	vulnsByTeam := map[string][]vulnerabilityRepository{}
 	// First, group up the repositories by owner
 	for _, repo := range repos {
@@ -106,7 +104,12 @@ func collateTeamReports(repos []vulnerabilityRepository, owners map[string][]str
 			vulnsByTeam[slug] = append(vulnsByTeam[slug], repo)
 		}
 	}
-	// Then create a report for each owner
+	return vulnsByTeam
+}
+
+func collateTeamReports(vulnsByTeam map[string][]vulnerabilityRepository) (teamReports map[string]map[string]vulnerabilityReport) {
+	log := logger.Get()
+
 	teamReports = map[string]map[string]vulnerabilityReport{}
 	for team, repos := range vulnsByTeam {
 		_, exists := teamReports[team]
@@ -160,74 +163,69 @@ func main() {
 	// Count our vulnerabilities
 	log.Info().Msg("Collating results.")
 
-	summaryReport := collateSummaryReport(allRepos)
-	collateTeamReports(allRepos, repositoryOwners)
+	vulnSummary := collateSummaryReport(allRepos)
+	vulnsByTeam := groupVulnsByOwner(allRepos, repositoryOwners)
+	teamReports := collateTeamReports(vulnsByTeam)
 
-	vulnsBySeverity := NewSeverityMap()
-	vulnsByEcosystem := map[string]int{}
-	vulnsByTeam := map[string][]vulnerabilityRepository{}
-
-	for _, repo := range allRepos {
-		repoVulns := repo.VulnerabilityAlerts.TotalCount
-		owners := getRepositoryOwners(repo.Name, repositoryOwners)
-		if repoVulns > 0 && len(owners) > 0 {
-			for _, slug := range owners {
-				_, exists := vulnsByTeam[slug]
-				if !exists {
-					vulnsByTeam[slug] = make([]vulnerabilityRepository, 0)
-				}
-				vulnsByTeam[slug] = append(vulnsByTeam[slug], repo)
-			}
-		}
-	}
-
-	log.Debug().Any("vulnsByTeam", vulnsByTeam).Msgf("Identified %d distinct teams", len(vulnsByTeam))
 	reportTime := time.Now().Format(time.RFC1123)
-	summary := fmt.Sprintf("*%s Dependabot Report for %s*\nTotal repositories: %d\nTotal vulnerabilities: %d\nAffected repositories: %d\n", ghOrgName, reportTime, len(allRepos), summaryReport.TotalCount, summaryReport.AffectedRepos)
+	summaryReport := fmt.Sprintf(
+		"*%s Dependabot Report for %s*\n"+
+			"Total repositories: %d\n"+
+			"Total vulnerabilities: %d\n"+
+			"Affected repositories: %d\n",
+		ghOrgName,
+		reportTime,
+		len(allRepos),
+		vulnSummary.TotalCount, vulnSummary.AffectedRepos,
+	)
 
 	severityReport := "*Breakdown by Severity*\n"
-	for severity, vulnCount := range vulnsBySeverity {
+	for severity, vulnCount := range vulnSummary.VulnsBySeverity {
 		icon := getIconForSeverity(severity, config.Severity)
 		severityReport = fmt.Sprintf("%s%s %s: %d\n", severityReport, icon, severity, vulnCount)
 	}
 
 	ecosystemReport := "*Breakdown by Ecosystem*\n"
-	for ecosystem, vulnCount := range vulnsByEcosystem {
+	for ecosystem, vulnCount := range vulnSummary.VulnsByEcosystem {
 		icon := getIconForEcosystem(ecosystem, config.Ecosystem)
 		ecosystemReport = fmt.Sprintf("%s%s %s: %d\n", ecosystemReport, icon, ecosystem, vulnCount)
 	}
 
-	fullReport := fmt.Sprintf("%s\n%s\n%s", summary, severityReport, ecosystemReport)
+	summaryReport = fmt.Sprintf("%s\n%s\n%s", summaryReport, severityReport, ecosystemReport)
 
 	slackMessages := map[string]string{
-		config.Default_slack_channel: fullReport,
+		config.Default_slack_channel: summaryReport,
 	}
 
-	for team, repos := range vulnsByTeam {
-		teamVulnsBySeverity := NewSeverityMap()
-		teamVulnsByEcosystem := map[string]int{}
-		totalVulns := 0
+	for team, repos := range teamReports {
 		teamReport := ""
-		teamInfo := getTeamConfigBySlug(team, config.Team)
-		for _, repo := range repos {
-			repoVulnsBySeverity := NewSeverityMap()
-			tallyVulnsBySeverity(repo.VulnerabilityAlerts.Nodes, repoVulnsBySeverity)
-			repoReport := fmt.Sprintf("*%s* -- ", repo.Name)
-			for severity, count := range repoVulnsBySeverity {
-				teamVulnsBySeverity[severity] += count
-				totalVulns += count
+		for name, repo := range repos {
+			if name == SUMMARY_KEY {
+				continue
+			}
+			repoReport := fmt.Sprintf("*%s* -- ", name)
+			for severity, count := range repo.VulnsBySeverity {
 				repoReport += fmt.Sprintf("*%s %s*: %d ", getIconForSeverity(severity, config.Severity), severity, count)
 			}
 			repoReport += "\n"
-			tallyVulnsByEcosystem(repo.VulnerabilityAlerts.Nodes, teamVulnsByEcosystem)
 			teamReport += repoReport
 		}
+		teamInfo := getTeamConfigBySlug(team, config.Team)
+		teamSummary := repos[SUMMARY_KEY]
+		teamSummaryReport := fmt.Sprintf(
+			"*%s Dependabot Report for %s*\n"+
+				"Affected repositories: %d\n"+
+				"Total vulnerabilities: %d\n",
+			teamInfo.Name,
+			reportTime,
+			teamSummary.AffectedRepos, // Subtract the summary report
+			teamSummary.TotalCount,
+		)
+		teamReport = teamSummaryReport + teamReport + "\n"
 		if reflect.DeepEqual(teamInfo, teamConfig{}) {
 			log.Warn().Str("team", team).Msg("Skipping report for unconfigured team.")
 			continue
 		}
-		teamSummary := fmt.Sprintf("*%s Dependabot Report for %s*\nAffected repositories: %d\nTotal vulnerabilities: %d\n", teamInfo.Name, reportTime, len(repos), totalVulns)
-		teamReport = teamSummary + teamReport + "\n"
 		if teamInfo.Slack_channel != "" {
 			slackMessages[teamInfo.Slack_channel] = teamReport
 		} else {
