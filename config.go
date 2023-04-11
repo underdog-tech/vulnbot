@@ -35,7 +35,7 @@ func loadConfig() tomlConfig {
 
 	_, err := toml.DecodeFile("config.toml", &config)
 	if err != nil {
-		log.Fatal().Msg("Error loading config file.")
+		log.Fatal().Err(err).Msg("Error loading config file.")
 	}
 	log.Debug().Any("config", config).Msg("Config loaded.")
 	return config

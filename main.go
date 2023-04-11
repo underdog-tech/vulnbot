@@ -150,7 +150,7 @@ func sendSlackMessages(slackToken string, messages map[string]string) {
 			)
 
 			if err != nil {
-				panic(err)
+				log.Error().Err(err).Msg("Failed to send Slack message.")
 			}
 			log.Info().Str("channel", channel).Str("timestamp", timestamp).Msg("Message sent to Slack.")
 		}
@@ -168,7 +168,7 @@ func main() {
 	// Gather credentials from the environment
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatal().Msg("Error loading .env file")
+		log.Info().Err(err).Msg(".env file not loaded.")
 	}
 
 	ghTokenSource := oauth2.StaticTokenSource(
