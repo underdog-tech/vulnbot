@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"dependabot-alert-bot/logger"
+	"vulnbot/logger"
 
 	"github.com/shurcooL/githubv4"
 )
