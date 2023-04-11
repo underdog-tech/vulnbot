@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"dependabot-alert-bot/api"
-	"dependabot-alert-bot/configs"
-	"dependabot-alert-bot/logger"
+	"vulnbot/api"
+	"vulnbot/configs"
+	"vulnbot/logger"
 
 	"github.com/joho/godotenv"
 	"github.com/shurcooL/githubv4"

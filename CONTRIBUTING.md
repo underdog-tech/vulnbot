@@ -136,10 +136,10 @@ merged.
 
 [asdf]: https://asdf-vm.com/
 [Conventional Commit]: https://www.conventionalcommits.org/en/v1.0.0/
-[discussions]: https://github.com/underdog-tech/dependabot-alert-bot/discussions
+[discussions]: https://github.com/underdog-tech/vulnbot/discussions
 [EditorConfig]: https://editorconfig.org/
 [Effective Go]: https://go.dev/doc/effective_go
-[existing issues]: https://github.com/underdog-tech/dependabot-alert-bot/issues
+[existing issues]: https://github.com/underdog-tech/vulnbot/issues
 [homebrew]: https://brew.sh/
 [official Go releases page]: https://go.dev/dl/
 [private vulnerability reporting]: https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing/privately-reporting-a-security-vulnerability#privately-reporting-a-security-vulnerability

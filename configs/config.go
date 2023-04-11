@@ -1,7 +1,7 @@
 package configs
 
 import (
-	"dependabot-alert-bot/logger"
+	"vulnbot/logger"
 
 	"github.com/BurntSushi/toml"
 )

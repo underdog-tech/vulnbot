@@ -24,6 +24,8 @@ go.work
 .env
 
 # This is the output of compiling `go build .`
+/vulnbot
+# This used to be the compiled name.
 /dependabot-alert-bot
 
 # Config is going to differ per deployment, so don't commit it

@@ -11,6 +11,6 @@ RUN go build .
 
 FROM base AS final
 
-COPY --from=builder /app/dependabot-alert-bot /app/
+COPY --from=builder /app/vulnbot /app/
 
-ENTRYPOINT [ "./dependabot-alert-bot" ]
+ENTRYPOINT [ "./vulnbot" ]

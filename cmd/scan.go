@@ -4,7 +4,7 @@ Copyright © 2023 Pinwheel
 package cmd
 
 import (
-	"dependabot-alert-bot/pkg"
+	"vulnbot/pkg"
 
 	"github.com/spf13/cobra"
 )

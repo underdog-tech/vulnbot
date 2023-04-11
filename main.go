@@ -4,7 +4,7 @@ Copyright © 2023 Pinwheel
 package main
 
 import (
-	"dependabot-alert-bot/cmd"
+	"vulnbot/cmd"
 )
 
 func main() {

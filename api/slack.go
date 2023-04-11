@@ -1,7 +1,7 @@
 package api
 
 import (
-	"dependabot-alert-bot/logger"
+	"vulnbot/logger"
 
 	"github.com/slack-go/slack"
 )
