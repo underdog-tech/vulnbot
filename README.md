@@ -1,10 +1,16 @@
-# Dependabot Alert Bot
+# Vulnbot
 
-This project aspires to be a bot for reporting Dependabot vulnerabilities found
-in your GitHub repositories, to your Slack server/channel(s).
+This project aspires to be a bot for pulling in security and vulnerability
+alerts from all data sources you might have, and reporting them out to your
+appropriate systems.
 
-Right now, this goal is accomplished via a single query to GitHub's GraphQL API,
-collating the data from that query, and reporting it to a single Slack channel.
+Our currently supported data sources are:
+
+* GitHub
+
+Our currently supported reporting systems are:
+
+* Slack
 
 ## Getting Started
 
@@ -25,13 +31,13 @@ You will then want to construct a `config.toml`, an example for which can be
 found in `config.example.toml`.
 
 Once these files are in place, simply run `go run .` or
-`go build . && ./dependabot-alert-bot`!
+`go build . && ./vulnbot`!
 
 Alternately you can run this in Docker:
 
 ```sh
-docker build . -t dependabot-alert-bot
-docker run --env-file .env -v ./config.toml:/app/config.toml dependabot-alert-bot
+docker build . -t vulnbot
+docker run --env-file .env -v ./config.toml:/app/config.toml vulnbot
 ```
 
 Building and running a Docker image would be helpful if, for example, you wanted

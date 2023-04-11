@@ -1,4 +1,4 @@
-module dependabot-alert-bot
+module vulnbot
 
 go 1.20
 

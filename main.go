@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"dependabot-alert-bot/logger"
 	"fmt"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+	"vulnbot/logger"
 
 	"github.com/joho/godotenv"
 	"github.com/shurcooL/githubv4"
