@@ -59,7 +59,7 @@ func queryGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) 
 		log.Info().Msg("Querying GitHub API for vulnerable repositories.")
 		err := ghClient.Query(context.Background(), &alertQuery, queryVars)
 		if err != nil {
-			panic(err)
+			log.Panic().Err(err).Msg("Failed to query GitHub!")
 		}
 		allRepos = append(allRepos, alertQuery.Organization.Repositories.Nodes...)
 		if !alertQuery.Organization.Repositories.PageInfo.HasNextPage {
@@ -118,7 +118,7 @@ func queryGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client)
 		log.Info().Msg("Querying GitHub API for repository ownership information.")
 		err := ghClient.Query(context.Background(), &ownerQuery, queryVars)
 		if err != nil {
-			panic(err)
+			log.Panic().Err(err).Msg("Failed to query GitHub!")
 		}
 		for _, team := range ownerQuery.Organization.Teams.Nodes {
 			// TODO: Handle pagination of repositories owned by a team.

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"dependabot-alert-bot/logger"
+
 	"github.com/BurntSushi/toml"
 )
 
@@ -29,11 +31,13 @@ type tomlConfig struct {
 
 func loadConfig() tomlConfig {
 	var config tomlConfig
+	log := logger.Get()
 
 	_, err := toml.DecodeFile("config.toml", &config)
 	if err != nil {
-		panic(err)
+		log.Fatal().Err(err).Msg("Error loading config file.")
 	}
+	log.Debug().Any("config", config).Msg("Config loaded.")
 	return config
 }
 
