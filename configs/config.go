@@ -1,4 +1,4 @@
-package main
+package configs
 
 import (
 	"dependabot-alert-bot/logger"
@@ -6,31 +6,31 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-type severityConfig struct {
+type SeverityConfig struct {
 	Label       string
 	Slack_emoji string
 }
 
-type ecosystemConfig struct {
+type EcosystemConfig struct {
 	Label       string
 	Slack_emoji string
 }
 
-type teamConfig struct {
+type TeamConfig struct {
 	Name          string
 	Github_slug   string
 	Slack_channel string
 }
 
-type tomlConfig struct {
+type TomlConfig struct {
 	Default_slack_channel string
-	Severity              []severityConfig
-	Ecosystem             []ecosystemConfig
-	Team                  []teamConfig
+	Severity              []SeverityConfig
+	Ecosystem             []EcosystemConfig
+	Team                  []TeamConfig
 }
 
-func loadConfig() tomlConfig {
-	var config tomlConfig
+func LoadConfig() TomlConfig {
+	var config TomlConfig
 	log := logger.Get()
 
 	_, err := toml.DecodeFile("config.toml", &config)
@@ -41,7 +41,7 @@ func loadConfig() tomlConfig {
 	return config
 }
 
-func getIconForSeverity(severity string, severities []severityConfig) string {
+func GetIconForSeverity(severity string, severities []SeverityConfig) string {
 	for _, config := range severities {
 		if config.Label == severity {
 			return config.Slack_emoji
@@ -50,7 +50,7 @@ func getIconForSeverity(severity string, severities []severityConfig) string {
 	return " "
 }
 
-func getIconForEcosystem(ecosystem string, ecosystems []ecosystemConfig) string {
+func GetIconForEcosystem(ecosystem string, ecosystems []EcosystemConfig) string {
 	for _, config := range ecosystems {
 		if config.Label == ecosystem {
 			return config.Slack_emoji
@@ -59,11 +59,11 @@ func getIconForEcosystem(ecosystem string, ecosystems []ecosystemConfig) string 
 	return " "
 }
 
-func getTeamConfigBySlug(teamSlug string, teams []teamConfig) teamConfig {
+func GetTeamConfigBySlug(teamSlug string, teams []TeamConfig) TeamConfig {
 	for _, team := range teams {
 		if team.Github_slug == teamSlug {
 			return team
 		}
 	}
-	return teamConfig{}
+	return TeamConfig{}
 }

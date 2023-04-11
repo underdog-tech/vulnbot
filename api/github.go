@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
-type vulnerabilityAlert struct {
+type VulnerabilityAlert struct {
 	Id                    string
 	Number                int
 	SecurityVulnerability struct {
@@ -19,16 +19,16 @@ type vulnerabilityAlert struct {
 	}
 }
 
-type vulnerabilityRepository struct {
+type VulnerabilityRepository struct {
 	Name                string
 	IsArchived          bool
 	VulnerabilityAlerts struct {
 		TotalCount int
-		Nodes      []vulnerabilityAlert
+		Nodes      []VulnerabilityAlert
 	} `graphql:"vulnerabilityAlerts(first: 100, states: OPEN)"`
 }
 
-type orgVulnerabilityQuery struct {
+type OrgVulnerabilityQuery struct {
 	Organization struct {
 		Name         string
 		Login        string
@@ -38,13 +38,13 @@ type orgVulnerabilityQuery struct {
 				EndCursor   githubv4.String
 				HasNextPage bool
 			}
-			Nodes []vulnerabilityRepository
+			Nodes []VulnerabilityRepository
 		} `graphql:"repositories(orderBy: {field: NAME, direction: ASC}, isFork: false, first: 100, after: $reposCursor)"`
 	} `graphql:"organization(login: $login)"`
 }
 
-func queryGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) (orgName string, repositories []vulnerabilityRepository) {
-	var alertQuery orgVulnerabilityQuery
+func QueryGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) (orgName string, repositories []VulnerabilityRepository) {
+	var alertQuery OrgVulnerabilityQuery
 	log := logger.Get()
 
 	// Construct the variables necessary for our GraphQL query
@@ -54,7 +54,7 @@ func queryGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) 
 	}
 
 	// Gather all repositories, handling pagination
-	var allRepos []vulnerabilityRepository
+	var allRepos []VulnerabilityRepository
 	for {
 		log.Info().Msg("Querying GitHub API for vulnerable repositories.")
 		err := ghClient.Query(context.Background(), &alertQuery, queryVars)
@@ -102,7 +102,7 @@ type orgRepositoryOwnerQuery struct {
 	} `graphql:"organization(login: $login)"`
 }
 
-func queryGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client) map[string][]string {
+func QueryGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client) map[string][]string {
 	var ownerQuery orgRepositoryOwnerQuery
 	log := logger.Get()
 

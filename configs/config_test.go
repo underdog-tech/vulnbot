@@ -1,4 +1,4 @@
-package main
+package configs
 
 import (
 	"reflect"
@@ -12,48 +12,48 @@ func checkFail(t *testing.T, actual interface{}, expected interface{}) {
 }
 
 func TestGetIconForConfiguredSeverity(t *testing.T) {
-	severities := []severityConfig{
+	severities := []SeverityConfig{
 		{Label: "High", Slack_emoji: ":high:"},
 		{Label: "Low", Slack_emoji: ":low:"},
 	}
-	icon := getIconForSeverity("High", severities)
+	icon := GetIconForSeverity("High", severities)
 	expected := ":high:"
 	checkFail(t, icon, expected)
 }
 
 func TestGetIconForUnconfiguredSeverity(t *testing.T) {
-	severities := []severityConfig{
+	severities := []SeverityConfig{
 		{Label: "High", Slack_emoji: ":high:"},
 		{Label: "Low", Slack_emoji: ":low:"},
 	}
-	icon := getIconForSeverity("Medium", severities)
+	icon := GetIconForSeverity("Medium", severities)
 	expected := " "
 	checkFail(t, icon, expected)
 }
 
 func TestGetIconForConfiguredEcosystem(t *testing.T) {
-	ecosystems := []ecosystemConfig{
+	ecosystems := []EcosystemConfig{
 		{Label: "Pip", Slack_emoji: ":python:"},
 		{Label: "Go", Slack_emoji: ":golang:"},
 	}
-	icon := getIconForEcosystem("Pip", ecosystems)
+	icon := GetIconForEcosystem("Pip", ecosystems)
 	expected := ":python:"
 	checkFail(t, icon, expected)
 }
 
 func TestGetConfiguredTeamConfigBySlug(t *testing.T) {
-	testersTeam := teamConfig{Name: "Testers", Github_slug: "testers-team"}
-	failersTeam := teamConfig{Name: "Failers", Github_slug: "failers-team"}
-	teamConfigs := []teamConfig{
+	testersTeam := TeamConfig{Name: "Testers", Github_slug: "testers-team"}
+	failersTeam := TeamConfig{Name: "Failers", Github_slug: "failers-team"}
+	TeamConfigs := []TeamConfig{
 		testersTeam,
 		failersTeam,
 	}
-	team := getTeamConfigBySlug("testers-team", teamConfigs)
+	team := GetTeamConfigBySlug("testers-team", TeamConfigs)
 	checkFail(t, team, testersTeam)
 }
 
 func TestGetUnconfiguredTeamConfigBySlug(t *testing.T) {
-	teamConfigs := []teamConfig{} // Empty is easiest for this purpose
-	team := getTeamConfigBySlug("unknown-team", teamConfigs)
-	checkFail(t, team, teamConfig{})
+	TeamConfigs := []TeamConfig{} // Empty is easiest for this purpose
+	team := GetTeamConfigBySlug("unknown-team", TeamConfigs)
+	checkFail(t, team, TeamConfig{})
 }

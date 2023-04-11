@@ -28,3 +28,6 @@ go.work
 
 # Config is going to differ per deployment, so don't commit it
 config.toml
+
+# asdf
+.tool-versions
