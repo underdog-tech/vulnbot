@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"vulnbot/logger"
+	"vulnbot/src/logger"
 
 	"github.com/shurcooL/githubv4"
 )

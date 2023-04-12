@@ -1,4 +1,4 @@
-package pkg
+package internal
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"vulnbot/api"
-	"vulnbot/configs"
-	"vulnbot/logger"
+	"vulnbot/src/api"
+	"vulnbot/src/configs"
+	"vulnbot/src/logger"
 
 	"github.com/joho/godotenv"
 	"github.com/shurcooL/githubv4"

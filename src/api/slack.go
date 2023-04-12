@@ -1,7 +1,7 @@
 package api
 
 import (
-	"vulnbot/logger"
+	"vulnbot/src/logger"
 
 	"github.com/slack-go/slack"
 )
