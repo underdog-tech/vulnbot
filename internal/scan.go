@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"vulnbot/api"
-	"vulnbot/configs"
+	"vulnbot/config"
 	"vulnbot/logger"
 
 	"github.com/joho/godotenv"

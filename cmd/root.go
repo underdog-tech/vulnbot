@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"os"
+	"vulnbot/logger"
 
 	"github.com/spf13/cobra"
 )
@@ -19,9 +19,11 @@ Vulnbot empowers developers and security teams to efficiently manage and respond
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	log := logger.Get()
+
 	err := rootCmd.Execute()
 	if err != nil {
-		os.Exit(1)
+		log.Fatal().Err(err).Msg("Failed to execute command.")
 	}
 }
 
