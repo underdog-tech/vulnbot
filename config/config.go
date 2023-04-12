@@ -29,11 +29,11 @@ type TomlConfig struct {
 	Team                  []TeamConfig
 }
 
-func LoadConfig() TomlConfig {
+func LoadConfig(configFilePath *string) TomlConfig {
 	var config TomlConfig
 	log := logger.Get()
 
-	_, err := toml.DecodeFile("config.toml", &config)
+	_, err := toml.DecodeFile(*configFilePath, &config)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error loading config file.")
 	}

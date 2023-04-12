@@ -19,3 +19,10 @@ func getBool(flags *pflag.FlagSet, flag string) bool {
 	checkErr(err)
 	return b
 }
+
+// getString return the string value of a flag with the given name
+func getString(flags *pflag.FlagSet, flag string) string {
+	s, err := flags.GetString(flag)
+	checkErr(err)
+	return s
+}
