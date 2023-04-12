@@ -144,7 +144,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	log := logger.Get()
 
 	// Load the configuration file
-	configurationFile := config.LoadConfig()
+	appConfig := config.LoadConfig()
 
 	// Gather credentials from the environment
 	err := godotenv.Load(".env")
@@ -184,20 +184,20 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	severityReport := "*Breakdown by Severity*\n"
 	for severity, vulnCount := range vulnSummary.VulnsBySeverity {
-		icon := config.GetIconForSeverity(severity, configurationFile.Severity)
+		icon := config.GetIconForSeverity(severity, appConfig.Severity)
 		severityReport = fmt.Sprintf("%s%s %s: %d\n", severityReport, icon, severity, vulnCount)
 	}
 
 	ecosystemReport := "*Breakdown by Ecosystem*\n"
 	for ecosystem, vulnCount := range vulnSummary.VulnsByEcosystem {
-		icon := config.GetIconForEcosystem(ecosystem, configurationFile.Ecosystem)
+		icon := config.GetIconForEcosystem(ecosystem, appConfig.Ecosystem)
 		ecosystemReport = fmt.Sprintf("%s%s %s: %d\n", ecosystemReport, icon, ecosystem, vulnCount)
 	}
 
 	summaryReport = fmt.Sprintf("%s\n%s\n%s", summaryReport, severityReport, ecosystemReport)
 
 	slackMessages := map[string]string{
-		configurationFile.Default_slack_channel: summaryReport,
+		appConfig.Default_slack_channel: summaryReport,
 	}
 
 	for team, repos := range teamReports {
@@ -208,12 +208,12 @@ func Scan(cmd *cobra.Command, args []string) {
 			}
 			repoReport := fmt.Sprintf("*%s* -- ", name)
 			for severity, count := range repo.VulnsBySeverity {
-				repoReport += fmt.Sprintf("*%s %s*: %d ", config.GetIconForSeverity(severity, configurationFile.Severity), severity, count)
+				repoReport += fmt.Sprintf("*%s %s*: %d ", config.GetIconForSeverity(severity, appConfig.Severity), severity, count)
 			}
 			repoReport += "\n"
 			teamReport += repoReport
 		}
-		teamInfo := config.GetTeamConfigBySlug(team, configurationFile.Team)
+		teamInfo := config.GetTeamConfigBySlug(team, appConfig.Team)
 		teamSummary := repos[SUMMARY_KEY]
 		teamSummaryReport := fmt.Sprintf(
 			"*%s Dependabot Report for %s*\n"+
