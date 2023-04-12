@@ -9,7 +9,7 @@ import (
 func checkErr(err error) {
 	log := logger.Get()
 	if err != nil {
-		log.Info().Err(err).Msg("Unexpected error extracting the flag.")
+		log.Fatal().Err(err).Msg("Unexpected error extracting the flag.")
 	}
 }
 
