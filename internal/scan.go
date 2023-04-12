@@ -144,7 +144,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	log := logger.Get()
 
 	// Load the configuration file
-	config := configs.LoadConfig()
+	configurationFile := config.LoadConfig()
 
 	// Gather credentials from the environment
 	err := godotenv.Load(".env")
@@ -184,20 +184,20 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	severityReport := "*Breakdown by Severity*\n"
 	for severity, vulnCount := range vulnSummary.VulnsBySeverity {
-		icon := configs.GetIconForSeverity(severity, config.Severity)
+		icon := config.GetIconForSeverity(severity, configurationFile.Severity)
 		severityReport = fmt.Sprintf("%s%s %s: %d\n", severityReport, icon, severity, vulnCount)
 	}
 
 	ecosystemReport := "*Breakdown by Ecosystem*\n"
 	for ecosystem, vulnCount := range vulnSummary.VulnsByEcosystem {
-		icon := configs.GetIconForEcosystem(ecosystem, config.Ecosystem)
+		icon := config.GetIconForEcosystem(ecosystem, configurationFile.Ecosystem)
 		ecosystemReport = fmt.Sprintf("%s%s %s: %d\n", ecosystemReport, icon, ecosystem, vulnCount)
 	}
 
 	summaryReport = fmt.Sprintf("%s\n%s\n%s", summaryReport, severityReport, ecosystemReport)
 
 	slackMessages := map[string]string{
-		config.Default_slack_channel: summaryReport,
+		configurationFile.Default_slack_channel: summaryReport,
 	}
 
 	for team, repos := range teamReports {
@@ -208,12 +208,12 @@ func Scan(cmd *cobra.Command, args []string) {
 			}
 			repoReport := fmt.Sprintf("*%s* -- ", name)
 			for severity, count := range repo.VulnsBySeverity {
-				repoReport += fmt.Sprintf("*%s %s*: %d ", configs.GetIconForSeverity(severity, config.Severity), severity, count)
+				repoReport += fmt.Sprintf("*%s %s*: %d ", config.GetIconForSeverity(severity, configurationFile.Severity), severity, count)
 			}
 			repoReport += "\n"
 			teamReport += repoReport
 		}
-		teamInfo := configs.GetTeamConfigBySlug(team, config.Team)
+		teamInfo := config.GetTeamConfigBySlug(team, configurationFile.Team)
 		teamSummary := repos[SUMMARY_KEY]
 		teamSummaryReport := fmt.Sprintf(
 			"*%s Dependabot Report for %s*\n"+
@@ -225,7 +225,7 @@ func Scan(cmd *cobra.Command, args []string) {
 			teamSummary.TotalCount,
 		)
 		teamReport = teamSummaryReport + teamReport + "\n"
-		if reflect.DeepEqual(teamInfo, configs.TeamConfig{}) {
+		if reflect.DeepEqual(teamInfo, config.TeamConfig{}) {
 			log.Warn().Str("team", team).Msg("Skipping report for unconfigured team.")
 			continue
 		}
