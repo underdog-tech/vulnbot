@@ -146,7 +146,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	// Load the configuration file
 	configFilePath := getString(cmd.Flags(), "config")
 	userConfig := config.LoadConfig(&configFilePath)
-z
+
 	// Gather credentials from the environment
 	err := godotenv.Load(".env")
 	if err != nil {
