@@ -13,6 +13,9 @@ jobs:
       matrix:
         go: ['1.18', '1.19', '1.20']
         os: ['windows-2019', 'windows-2022', 'ubuntu-20.04', 'ubuntu-22.04', 'macos-11', 'macos-12']
+    env:
+      OS: ${{ matrix.os }}
+      GO: ${{ matrix.go }}
     runs-on: ${{ matrix.os }}
     name: Build & test with Go ${{ matrix.go }} on ${{ matrix.os }}
     steps:
@@ -27,4 +30,10 @@ jobs:
       run: go build -v ./...
 
     - name: Test
-      run: go test -v ./...
+      run: go test -v -race -covermode=atomic -coverprofile="coverage.out" -coverpkg=./... ./...
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        env_vars: OS,GO
+        flags: unittests
