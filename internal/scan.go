@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"vulnbot/src/api"
-	"vulnbot/src/configs"
-	"vulnbot/src/logger"
+	"vulnbot/api"
+	"vulnbot/configs"
+	"vulnbot/logger"
 
 	"github.com/joho/godotenv"
 	"github.com/shurcooL/githubv4"

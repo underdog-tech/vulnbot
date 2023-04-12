@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"vulnbot/src/internal"
+	"vulnbot/internal"
 
 	"github.com/spf13/cobra"
 )

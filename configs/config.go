@@ -1,7 +1,7 @@
 package configs
 
 import (
-	"vulnbot/src/logger"
+	"vulnbot/logger"
 
 	"github.com/BurntSushi/toml"
 )
