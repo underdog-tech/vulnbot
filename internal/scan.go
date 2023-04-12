@@ -144,7 +144,8 @@ func Scan(cmd *cobra.Command, args []string) {
 	log := logger.Get()
 
 	// Load the configuration file
-	userConfig := config.LoadConfig()
+	configFilePath := getString(cmd.Flags(), "config")
+	userConfig := config.LoadConfig(&configFilePath)
 
 	// Gather credentials from the environment
 	err := godotenv.Load(".env")
@@ -236,7 +237,10 @@ func Scan(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	log.Debug().Any("slackMessages", slackMessages).Msg("Messages generated for Slack.")
-	api.SendSlackMessages(slackToken, slackMessages)
+	disableSlack := getBool(cmd.Flags(), "disable-slack")
+	if !disableSlack {
+		log.Debug().Any("slackMessages", slackMessages).Msg("Messages generated for Slack.")
+		api.SendSlackMessages(slackToken, slackMessages)
+	}
 	log.Info().Msg("Done!")
 }
