@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 Pinwheel
-*/
 package cmd
 
 import (
