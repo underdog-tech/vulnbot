@@ -1,17 +1,10 @@
 package config
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func checkFail(t *testing.T, actual interface{}, expected interface{}) {
-	if !reflect.DeepEqual(actual, expected) {
-		t.Errorf("Expected: \"%v\"; Actual: \"%v\"", expected, actual)
-	}
-}
 
 func TestGetIconForConfiguredSeverity(t *testing.T) {
 	severities := []SeverityConfig{
@@ -60,5 +53,4 @@ func TestGetUnconfiguredTeamConfigBySlug(t *testing.T) {
 	team, err := GetTeamConfigBySlug("unknown-team", TeamConfigs)
 	assert.Empty(t, team)
 	assert.Error(t, err)
-	checkFail(t, team, TeamConfig{})
 }
