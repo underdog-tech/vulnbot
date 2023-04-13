@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"vulnbot/logger"
 
 	"github.com/BurntSushi/toml"
@@ -41,29 +42,29 @@ func LoadConfig(configFilePath *string) TomlConfig {
 	return config
 }
 
-func GetIconForSeverity(severity string, severities []SeverityConfig) string {
+func GetIconForSeverity(severity string, severities []SeverityConfig) (string, error) {
 	for _, config := range severities {
 		if config.Label == severity {
-			return config.Slack_emoji
+			return config.Slack_emoji, nil
 		}
 	}
-	return " "
+	return "", fmt.Errorf("No Slack icon available for severity %s", severity)
 }
 
-func GetIconForEcosystem(ecosystem string, ecosystems []EcosystemConfig) string {
+func GetIconForEcosystem(ecosystem string, ecosystems []EcosystemConfig) (string, error) {
 	for _, config := range ecosystems {
 		if config.Label == ecosystem {
-			return config.Slack_emoji
+			return config.Slack_emoji, nil
 		}
 	}
-	return " "
+	return "", fmt.Errorf("No Slack icon available for ecosystem %s", ecosystem)
 }
 
-func GetTeamConfigBySlug(teamSlug string, teams []TeamConfig) TeamConfig {
+func GetTeamConfigBySlug(teamSlug string, teams []TeamConfig) (TeamConfig, error) {
 	for _, team := range teams {
 		if team.Github_slug == teamSlug {
-			return team
+			return team, nil
 		}
 	}
-	return TeamConfig{}
+	return TeamConfig{}, fmt.Errorf("No config found for team %s", teamSlug)
 }
