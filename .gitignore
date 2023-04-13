@@ -33,3 +33,6 @@ config.toml
 
 # asdf
 .tool-versions
+
+# VS code
+.vscode
