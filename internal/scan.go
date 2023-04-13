@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 	"time"
 
@@ -17,6 +16,8 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
 )
+
+const DEFAULT_ICON = " "
 
 // Used to represent repositories whose owner cannot be automatically detected
 const NO_OWNER_KEY = "__none__"
@@ -185,13 +186,19 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	severityReport := "*Breakdown by Severity*\n"
 	for severity, vulnCount := range vulnSummary.VulnsBySeverity {
-		icon := config.GetIconForSeverity(severity, userConfig.Severity)
+		icon, err := config.GetIconForSeverity(severity, userConfig.Severity)
+		if err != nil {
+			icon = DEFAULT_ICON
+		}
 		severityReport = fmt.Sprintf("%s%s %s: %d\n", severityReport, icon, severity, vulnCount)
 	}
 
 	ecosystemReport := "*Breakdown by Ecosystem*\n"
 	for ecosystem, vulnCount := range vulnSummary.VulnsByEcosystem {
-		icon := config.GetIconForEcosystem(ecosystem, userConfig.Ecosystem)
+		icon, err := config.GetIconForEcosystem(ecosystem, userConfig.Ecosystem)
+		if err != nil {
+			icon = DEFAULT_ICON
+		}
 		ecosystemReport = fmt.Sprintf("%s%s %s: %d\n", ecosystemReport, icon, ecosystem, vulnCount)
 	}
 
@@ -203,18 +210,26 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	for team, repos := range teamReports {
 		teamReport := ""
+		teamInfo, err := config.GetTeamConfigBySlug(team, userConfig.Team)
+		if err != nil {
+			log.Warn().Str("team", team).Msg("Skipping report for unconfigured team.")
+			continue
+		}
 		for name, repo := range repos {
 			if name == SUMMARY_KEY {
 				continue
 			}
 			repoReport := fmt.Sprintf("*%s* -- ", name)
 			for severity, count := range repo.VulnsBySeverity {
-				repoReport += fmt.Sprintf("*%s %s*: %d ", config.GetIconForSeverity(severity, userConfig.Severity), severity, count)
+				icon, err := config.GetIconForSeverity(severity, userConfig.Severity)
+				if err != nil {
+					icon = DEFAULT_ICON
+				}
+				repoReport += fmt.Sprintf("*%s %s*: %d ", icon, severity, count)
 			}
 			repoReport += "\n"
 			teamReport += repoReport
 		}
-		teamInfo := config.GetTeamConfigBySlug(team, userConfig.Team)
 		teamSummary := repos[SUMMARY_KEY]
 		teamSummaryReport := fmt.Sprintf(
 			"*%s Dependabot Report for %s*\n"+
@@ -226,10 +241,6 @@ func Scan(cmd *cobra.Command, args []string) {
 			teamSummary.TotalCount,
 		)
 		teamReport = teamSummaryReport + teamReport + "\n"
-		if reflect.DeepEqual(teamInfo, config.TeamConfig{}) {
-			log.Warn().Str("team", team).Msg("Skipping report for unconfigured team.")
-			continue
-		}
 		if teamInfo.Slack_channel != "" {
 			slackMessages[teamInfo.Slack_channel] = teamReport
 		} else {

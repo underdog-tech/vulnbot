@@ -1,24 +1,19 @@
 package config
 
 import (
-	"reflect"
 	"testing"
-)
 
-func checkFail(t *testing.T, actual interface{}, expected interface{}) {
-	if !reflect.DeepEqual(actual, expected) {
-		t.Errorf("Expected: \"%v\"; Actual: \"%v\"", expected, actual)
-	}
-}
+	"github.com/stretchr/testify/assert"
+)
 
 func TestGetIconForConfiguredSeverity(t *testing.T) {
 	severities := []SeverityConfig{
 		{Label: "High", Slack_emoji: ":high:"},
 		{Label: "Low", Slack_emoji: ":low:"},
 	}
-	icon := GetIconForSeverity("High", severities)
-	expected := ":high:"
-	checkFail(t, icon, expected)
+	icon, err := GetIconForSeverity("High", severities)
+	assert.Equal(t, icon, ":high:")
+	assert.Nil(t, err)
 }
 
 func TestGetIconForUnconfiguredSeverity(t *testing.T) {
@@ -26,9 +21,9 @@ func TestGetIconForUnconfiguredSeverity(t *testing.T) {
 		{Label: "High", Slack_emoji: ":high:"},
 		{Label: "Low", Slack_emoji: ":low:"},
 	}
-	icon := GetIconForSeverity("Medium", severities)
-	expected := " "
-	checkFail(t, icon, expected)
+	icon, err := GetIconForSeverity("Medium", severities)
+	assert.Empty(t, icon)
+	assert.Error(t, err)
 }
 
 func TestGetIconForConfiguredEcosystem(t *testing.T) {
@@ -36,9 +31,9 @@ func TestGetIconForConfiguredEcosystem(t *testing.T) {
 		{Label: "Pip", Slack_emoji: ":python:"},
 		{Label: "Go", Slack_emoji: ":golang:"},
 	}
-	icon := GetIconForEcosystem("Pip", ecosystems)
-	expected := ":python:"
-	checkFail(t, icon, expected)
+	icon, err := GetIconForEcosystem("Pip", ecosystems)
+	assert.Equal(t, icon, ":python:")
+	assert.Nil(t, err)
 }
 
 func TestGetConfiguredTeamConfigBySlug(t *testing.T) {
@@ -48,12 +43,14 @@ func TestGetConfiguredTeamConfigBySlug(t *testing.T) {
 		testersTeam,
 		failersTeam,
 	}
-	team := GetTeamConfigBySlug("testers-team", TeamConfigs)
-	checkFail(t, team, testersTeam)
+	team, err := GetTeamConfigBySlug("testers-team", TeamConfigs)
+	assert.Equal(t, team, testersTeam)
+	assert.Nil(t, err)
 }
 
 func TestGetUnconfiguredTeamConfigBySlug(t *testing.T) {
 	TeamConfigs := []TeamConfig{} // Empty is easiest for this purpose
-	team := GetTeamConfigBySlug("unknown-team", TeamConfigs)
-	checkFail(t, team, TeamConfig{})
+	team, err := GetTeamConfigBySlug("unknown-team", TeamConfigs)
+	assert.Empty(t, team)
+	assert.Error(t, err)
 }
