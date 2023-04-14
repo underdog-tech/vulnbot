@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -26,8 +27,6 @@ func TestSendSlackMessages(t *testing.T) {
 		"channel2": "message2",
 	}
 
-	// Set up expected method calls on the mockClient
-
 	// Test case 1: Successful send
 	mockClient.On("PostMessage", "channel1", "message1").Return("", "", nil).Once()
 
@@ -37,5 +36,24 @@ func TestSendSlackMessages(t *testing.T) {
 	// Run tests
 	SendSlackMessages(messages, mockClient)
 
+	mockClient.AssertExpectations(t)
+}
+
+func TestPostMessage(t *testing.T) {
+	// Create a mock SlackClientInterface
+	mockClient := new(MockSlackClient)
+
+	// Set up expected method calls on the mockClient
+	mockClient.On("PostMessage", "channelID", "message").Return("response1", "response2", nil).Once()
+
+	// Call the method being tested
+	response1, response2, err := mockClient.PostMessage("channelID", "message")
+
+	// Assert the expected results
+	assert.Equal(t, "response1", response1)
+	assert.Equal(t, "response2", response2)
+	assert.NoError(t, err)
+
+	// Assert that the expected method was called on the mockClient
 	mockClient.AssertExpectations(t)
 }
