@@ -6,24 +6,31 @@ import (
 	"github.com/slack-go/slack"
 )
 
-func SendSlackMessages(slackToken string, messages map[string]string) {
+type SlackClientInterface interface {
+	PostMessage(channelID, message string) (string, string, error)
+}
+
+type SlackClient struct {
+	client slack.Client
+}
+
+func (s *SlackClient) PostMessage(channelID string, message string) (string, string, error) {
+	return s.client.PostMessage(channelID, slack.MsgOptionText(message, false), slack.MsgOptionAsUser(true))
+}
+
+func NewSlackClient(slackToken string) SlackClientInterface {
+	return &SlackClient{
+		client: *slack.New(slackToken, slack.OptionDebug(true)),
+	}
+}
+
+func SendSlackMessages(messages map[string]string, client SlackClientInterface) {
 	log := logger.Get()
-
-	if len(slackToken) > 0 {
-		slackClient := slack.New(slackToken, slack.OptionDebug(true))
-		for channel, message := range messages {
-			_, timestamp, err := slackClient.PostMessage(
-				channel,
-				slack.MsgOptionText(message, false),
-				slack.MsgOptionAsUser(true),
-			)
-
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to send Slack message.")
-			}
-			log.Info().Str("channel", channel).Str("timestamp", timestamp).Msg("Message sent to Slack.")
+	for channel, message := range messages {
+		_, timestamp, err := client.PostMessage(channel, message)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to send Slack message.")
 		}
-	} else {
-		log.Warn().Msg("No Slack token found. Skipping communication.")
+		log.Info().Str("channel", channel).Str("timestamp", timestamp).Msg("Message sent to Slack.")
 	}
 }

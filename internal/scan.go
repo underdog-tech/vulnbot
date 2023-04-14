@@ -251,7 +251,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	disableSlack := getBool(cmd.Flags(), "disable-slack")
 	if !disableSlack {
 		log.Debug().Any("slackMessages", slackMessages).Msg("Messages generated for Slack.")
-		api.SendSlackMessages(slackToken, slackMessages)
+		api.SendSlackMessages(slackMessages, api.NewSlackClient(slackToken))
 	}
 	log.Info().Msg("Done!")
 }
