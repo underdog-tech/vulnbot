@@ -7,27 +7,27 @@ import (
 )
 
 type SlackClientInterface interface {
-	PostMessage(channelID, message string) (string, string, error)
+	PostMessage(channelID string, options ...slack.MsgOption) (string, string, error)
 }
 
 type SlackClient struct {
-	client slack.Client
+	client SlackClientInterface
 }
 
-func (s *SlackClient) PostMessage(channelID string, message string) (string, string, error) {
-	return s.client.PostMessage(channelID, slack.MsgOptionText(message, false), slack.MsgOptionAsUser(true))
+func (s *SlackClient) PostMessage(channelID string, options ...slack.MsgOption) (string, string, error) {
+	return s.client.PostMessage(channelID, options...)
 }
 
 func NewSlackClient(slackToken string) SlackClientInterface {
 	return &SlackClient{
-		client: *slack.New(slackToken, slack.OptionDebug(true)),
+		client: slack.New(slackToken, slack.OptionDebug(true)),
 	}
 }
 
 func SendSlackMessages(messages map[string]string, client SlackClientInterface) {
 	log := logger.Get()
 	for channel, message := range messages {
-		_, timestamp, err := client.PostMessage(channel, message)
+		_, timestamp, err := client.PostMessage(channel, slack.MsgOptionText(message, false), slack.MsgOptionAsUser(true))
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to send Slack message.")
 		}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -12,8 +13,8 @@ type MockSlackClient struct {
 	mock.Mock
 }
 
-func (m *MockSlackClient) PostMessage(channelID, message string) (string, string, error) {
-	args := m.Called(channelID, message)
+func (m *MockSlackClient) PostMessage(channelID string, options ...slack.MsgOption) (string, string, error) {
+	args := m.Called(channelID, options)
 	return args.String(0), args.String(1), args.Error(2)
 }
 
@@ -28,10 +29,10 @@ func TestSendSlackMessages(t *testing.T) {
 	}
 
 	// Test case 1: Successful send
-	mockClient.On("PostMessage", "channel1", "message1").Return("", "", nil).Once()
+	mockClient.On("PostMessage", "channel1", mock.Anything, mock.Anything).Return("", "", nil).Once()
 
 	// Test case 2: Error sending Slack message
-	mockClient.On("PostMessage", "channel2", "message2").Return("", "", fmt.Errorf("Failed to send Slack message")).Once()
+	mockClient.On("PostMessage", "channel2", mock.Anything, mock.Anything).Return("", "", fmt.Errorf("Failed to send Slack message")).Once()
 
 	// Run tests
 	SendSlackMessages(messages, mockClient)
@@ -43,11 +44,15 @@ func TestPostMessage(t *testing.T) {
 	// Create a mock SlackClientInterface
 	mockClient := new(MockSlackClient)
 
+	slackClient := &SlackClient{
+		client: mockClient,
+	}
+
 	// Set up expected method calls on the mockClient
-	mockClient.On("PostMessage", "channelID", "message").Return("response1", "response2", nil).Once()
+	mockClient.On("PostMessage", "channelID", mock.Anything, mock.Anything).Return("response1", "response2", nil).Once()
 
 	// Call the method being tested
-	response1, response2, err := mockClient.PostMessage("channelID", "message")
+	response1, response2, err := slackClient.PostMessage("channelID", slack.MsgOptionText(mock.Anything, false), slack.MsgOptionAsUser(true))
 
 	// Assert the expected results
 	assert.Equal(t, "response1", response1)
