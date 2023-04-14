@@ -57,3 +57,11 @@ func TestPostMessage(t *testing.T) {
 	// Assert that the expected method was called on the mockClient
 	mockClient.AssertExpectations(t)
 }
+
+func TestNewSlackClient(t *testing.T) {
+	// Call the NewSlackClient function with the mockClient
+	slackClient := NewSlackClient("slackToken")
+
+	// Assert the expected behavior
+	assert.NotNil(t, slackClient)
+}
