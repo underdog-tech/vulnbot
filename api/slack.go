@@ -10,18 +10,8 @@ type SlackClientInterface interface {
 	PostMessage(channelID string, options ...slack.MsgOption) (string, string, error)
 }
 
-type SlackClient struct {
-	client SlackClientInterface
-}
-
-func (s *SlackClient) PostMessage(channelID string, options ...slack.MsgOption) (string, string, error) {
-	return s.client.PostMessage(channelID, options...)
-}
-
 func NewSlackClient(slackToken string) SlackClientInterface {
-	return &SlackClient{
-		client: slack.New(slackToken, slack.OptionDebug(true)),
-	}
+	return slack.New(slackToken, slack.OptionDebug(true))
 }
 
 func SendSlackMessages(messages map[string]string, client SlackClientInterface) {

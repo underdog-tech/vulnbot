@@ -54,29 +54,6 @@ func TestSendSlackMessagesError(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
-func TestPostMessage(t *testing.T) {
-	// Create a mock SlackClientInterface
-	mockClient := new(MockSlackClient)
-
-	slackClient := &SlackClient{
-		client: mockClient,
-	}
-
-	// Set up expected method calls on the mockClient
-	mockClient.On("PostMessage", "channelID", mock.Anything, mock.Anything).Return("response1", "response2", nil).Once()
-
-	// Call the method being tested
-	response1, response2, err := slackClient.PostMessage("channelID", slack.MsgOptionText(mock.Anything, false), slack.MsgOptionAsUser(true))
-
-	// Assert the expected results
-	assert.Equal(t, "response1", response1)
-	assert.Equal(t, "response2", response2)
-	assert.NoError(t, err)
-
-	// Assert that the expected method was called on the mockClient
-	mockClient.AssertExpectations(t)
-}
-
 func TestNewSlackClient(t *testing.T) {
 	// Call the NewSlackClient function with the mockClient
 	slackClient := NewSlackClient("slackToken")
