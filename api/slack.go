@@ -1,29 +1,31 @@
 package api
 
 import (
+	"fmt"
 	"vulnbot/logger"
 
 	"github.com/slack-go/slack"
 )
 
-func SendSlackMessages(slackToken string, messages map[string]string) {
+type SlackClientInterface interface {
+	PostMessage(channelID string, options ...slack.MsgOption) (string, string, error)
+}
+
+func NewSlackClient(slackToken string) (SlackClientInterface, error) {
+	if slackToken == "" {
+		return nil, fmt.Errorf("No Slack token was provided.")
+	}
+	return slack.New(slackToken, slack.OptionDebug(true)), nil
+}
+
+func SendSlackMessages(messages map[string]string, client SlackClientInterface) {
 	log := logger.Get()
-
-	if len(slackToken) > 0 {
-		slackClient := slack.New(slackToken, slack.OptionDebug(true))
-		for channel, message := range messages {
-			_, timestamp, err := slackClient.PostMessage(
-				channel,
-				slack.MsgOptionText(message, false),
-				slack.MsgOptionAsUser(true),
-			)
-
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to send Slack message.")
-			}
+	for channel, message := range messages {
+		_, timestamp, err := client.PostMessage(channel, slack.MsgOptionText(message, false), slack.MsgOptionAsUser(true))
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to send Slack message.")
+		} else {
 			log.Info().Str("channel", channel).Str("timestamp", timestamp).Msg("Message sent to Slack.")
 		}
-	} else {
-		log.Warn().Msg("No Slack token found. Skipping communication.")
 	}
 }
