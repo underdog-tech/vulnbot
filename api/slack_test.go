@@ -18,21 +18,35 @@ func (m *MockSlackClient) PostMessage(channelID string, options ...slack.MsgOpti
 	return args.String(0), args.String(1), args.Error(2)
 }
 
-func TestSendSlackMessages(t *testing.T) {
+func TestSendSlackMessagesSuccess(t *testing.T) {
 	// Create a mock Slack client
 	mockClient := new(MockSlackClient)
 
 	// Set up test messages
 	messages := map[string]string{
-		"channel1": "message1",
-		"channel2": "message2",
+		"channel": "message",
 	}
 
-	// Test case 1: Successful send
-	mockClient.On("PostMessage", "channel1", mock.Anything, mock.Anything).Return("", "", nil).Once()
+	// Test case: Successful send
+	mockClient.On("PostMessage", "channel", mock.Anything, mock.Anything).Return("", "", nil).Once()
 
-	// Test case 2: Error sending Slack message
-	mockClient.On("PostMessage", "channel2", mock.Anything, mock.Anything).Return("", "", fmt.Errorf("Failed to send Slack message")).Once()
+	// Run tests
+	SendSlackMessages(messages, mockClient)
+
+	mockClient.AssertExpectations(t)
+}
+
+func TestSendSlackMessagesError(t *testing.T) {
+	// Create a mock Slack client
+	mockClient := new(MockSlackClient)
+
+	// Set up test messages
+	messages := map[string]string{
+		"channel": "message",
+	}
+
+	// Test case: Error sending Slack message
+	mockClient.On("PostMessage", "channel", mock.Anything, mock.Anything).Return("", "", fmt.Errorf("Failed to send Slack message")).Once()
 
 	// Run tests
 	SendSlackMessages(messages, mockClient)

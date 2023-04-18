@@ -30,7 +30,8 @@ func SendSlackMessages(messages map[string]string, client SlackClientInterface) 
 		_, timestamp, err := client.PostMessage(channel, slack.MsgOptionText(message, false), slack.MsgOptionAsUser(true))
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to send Slack message.")
+		} else {
+			log.Info().Str("channel", channel).Str("timestamp", timestamp).Msg("Message sent to Slack.")
 		}
-		log.Info().Str("channel", channel).Str("timestamp", timestamp).Msg("Message sent to Slack.")
 	}
 }
