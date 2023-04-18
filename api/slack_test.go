@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/slack-go/slack"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -51,4 +52,33 @@ func TestSendSlackMessagesError(t *testing.T) {
 	SendSlackMessages(messages, mockClient)
 
 	mockClient.AssertExpectations(t)
+}
+
+func TestIsSlackTokenMissing(t *testing.T) {
+	testCases := []struct {
+		expectedResult bool
+		slackToken     string
+		err            string
+	}{
+		{
+			expectedResult: true,
+			slackToken:     "",
+			err:            "No Slack token was provided.",
+		},
+		{
+			expectedResult: false,
+			slackToken:     "something!",
+		},
+	}
+
+	for _, tc := range testCases {
+		_, err := NewSlackClient(tc.slackToken)
+
+		if tc.expectedResult {
+			assert.Error(t, err)
+		} else {
+			assert.NoError(t, err)
+		}
+	}
+
 }
