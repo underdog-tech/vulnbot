@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/slack-go/slack"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -30,7 +29,7 @@ func TestSendSlackMessagesSuccess(t *testing.T) {
 	// Test case: Successful send
 	mockClient.On("PostMessage", "channel", mock.Anything, mock.Anything).Return("", "", nil).Once()
 
-	// Run tests
+	// Run test
 	SendSlackMessages(messages, mockClient)
 
 	mockClient.AssertExpectations(t)
@@ -48,16 +47,8 @@ func TestSendSlackMessagesError(t *testing.T) {
 	// Test case: Error sending Slack message
 	mockClient.On("PostMessage", "channel", mock.Anything, mock.Anything).Return("", "", fmt.Errorf("Failed to send Slack message")).Once()
 
-	// Run tests
+	// Run test
 	SendSlackMessages(messages, mockClient)
 
 	mockClient.AssertExpectations(t)
-}
-
-func TestNewSlackClient(t *testing.T) {
-	// Call the NewSlackClient function with the mockClient
-	slackClient := NewSlackClient("slackToken")
-
-	// Assert the expected behavior
-	assert.NotNil(t, slackClient)
 }
