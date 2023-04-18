@@ -58,12 +58,10 @@ func TestIsSlackTokenMissing(t *testing.T) {
 	testCases := []struct {
 		expectedResult bool
 		slackToken     string
-		err            string
 	}{
 		{
 			expectedResult: true,
 			slackToken:     "",
-			err:            "No Slack token was provided.",
 		},
 		{
 			expectedResult: false,
