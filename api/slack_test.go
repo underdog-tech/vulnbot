@@ -55,28 +55,11 @@ func TestSendSlackMessagesError(t *testing.T) {
 }
 
 func TestIsSlackTokenMissing(t *testing.T) {
-	testCases := []struct {
-		expectedResult bool
-		slackToken     string
-	}{
-		{
-			expectedResult: true,
-			slackToken:     "",
-		},
-		{
-			expectedResult: false,
-			slackToken:     "something!",
-		},
-	}
+	_, err := NewSlackClient("")
+	assert.Error(t, err)
+}
 
-	for _, tc := range testCases {
-		_, err := NewSlackClient(tc.slackToken)
-
-		if tc.expectedResult {
-			assert.Error(t, err)
-		} else {
-			assert.NoError(t, err)
-		}
-	}
-
+func TestSlackTokenIsNotMissing(t *testing.T) {
+	_, err := NewSlackClient("slackToken")
+	assert.NoError(t, err)
 }
