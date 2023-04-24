@@ -1,5 +1,12 @@
 # Vulnbot
 
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/underdog-tech/vulnbot)
+![GitHub](https://img.shields.io/github/license/underdog-tech/vulnbot)
+[![Go Report Card](https://goreportcard.com/badge/github.com/underdog-tech/vulnbot)](https://goreportcard.com/report/github.com/underdog-tech/vulnbot)
+[![Go](https://github.com/underdog-tech/vulnbot/actions/workflows/tests.yml/badge.svg)](https://github.com/underdog-tech/vulnbot/actions/workflows/tests.yml)
+[![CodeQL](https://github.com/underdog-tech/vulnbot/actions/workflows/codeql.yml/badge.svg)](https://github.com/underdog-tech/vulnbot/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/underdog-tech/vulnbot/branch/main/graph/badge.svg?token=N4RI3WSI3I)](https://codecov.io/gh/underdog-tech/vulnbot)
+
 This project aspires to be a bot for pulling in security and vulnerability
 alerts from all data sources you might have, and reporting them out to your
 appropriate systems.
