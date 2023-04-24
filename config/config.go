@@ -2,7 +2,8 @@ package config
 
 import (
 	"fmt"
-	"vulnbot/logger"
+
+	"github.com/underdog-tech/vulnbot/logger"
 
 	"github.com/BurntSushi/toml"
 )
