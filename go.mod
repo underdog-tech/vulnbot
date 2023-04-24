@@ -1,4 +1,4 @@
-module vulnbot
+module github.com/underdog-tech/vulnbot
 
 go 1.20
 

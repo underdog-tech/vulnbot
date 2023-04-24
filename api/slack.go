@@ -2,7 +2,8 @@ package api
 
 import (
 	"fmt"
-	"vulnbot/logger"
+
+	"github.com/underdog-tech/vulnbot/logger"
 
 	"github.com/slack-go/slack"
 )

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"vulnbot/logger"
+	"github.com/underdog-tech/vulnbot/logger"
 
 	"github.com/spf13/cobra"
 )
@@ -10,9 +10,9 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "vulnbot",
 	Short: "Vulnbot: Your all-in-one security alert manager.",
-	Long: `Vulnbot is a comprehensive security alert manager designed to keep your code safe from vulnerabilities. 
+	Long: `Vulnbot is a comprehensive security alert manager designed to keep your code safe from vulnerabilities.
 
-It is a versatile bot that can seamlessly integrate with multiple data sources, such as GitHub, and soon Phylum, 
+It is a versatile bot that can seamlessly integrate with multiple data sources, such as GitHub, and soon Phylum,
 Vulnbot empowers developers and security teams to efficiently manage and respond to security threats.`,
 }
 

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"vulnbot/api"
-	"vulnbot/config"
-	"vulnbot/logger"
+	"github.com/underdog-tech/vulnbot/api"
+	"github.com/underdog-tech/vulnbot/config"
+	"github.com/underdog-tech/vulnbot/logger"
 
 	"github.com/joho/godotenv"
 	"github.com/shurcooL/githubv4"

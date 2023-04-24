@@ -1,7 +1,7 @@
 package main
 
 import (
-	"vulnbot/cmd"
+	"github.com/underdog-tech/vulnbot/cmd"
 )
 
 func main() {

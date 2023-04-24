@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"vulnbot/logger"
+	"github.com/underdog-tech/vulnbot/logger"
 
 	"github.com/spf13/pflag"
 )
