@@ -1,5 +1,7 @@
 package reporting
 
+import "sync"
+
 func NewSeverityMap() map[string]int {
 	return map[string]int{
 		"Critical": 0,
@@ -9,15 +11,15 @@ func NewSeverityMap() map[string]int {
 	}
 }
 
-type vulnerabilityReport struct {
+type VulnerabilityReport struct {
 	TotalCount       int
 	AffectedRepos    int
 	VulnsByEcosystem map[string]int
 	VulnsBySeverity  map[string]int
 }
 
-func NewVulnerabilityReport() vulnerabilityReport {
-	return vulnerabilityReport{
+func NewVulnerabilityReport() VulnerabilityReport {
+	return VulnerabilityReport{
 		AffectedRepos:    0,
 		TotalCount:       0,
 		VulnsBySeverity:  NewSeverityMap(),
@@ -26,6 +28,6 @@ func NewVulnerabilityReport() vulnerabilityReport {
 }
 
 type Reporter interface {
-	SendSummaryReport(report vulnerabilityReport) error
-	SendTeamReports(map[string]map[string]vulnerabilityReport) error
+	SendSummaryReport(header string, numRepos int, report VulnerabilityReport, wg *sync.WaitGroup) error
+	SendTeamReports(teamReports map[string]map[string]VulnerabilityReport, wg *sync.WaitGroup)
 }
