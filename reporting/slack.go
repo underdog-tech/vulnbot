@@ -2,11 +2,13 @@ package reporting
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/underdog-tech/vulnbot/config"
 	"github.com/underdog-tech/vulnbot/logger"
+	"golang.org/x/exp/maps"
 
 	"github.com/slack-go/slack"
 )
@@ -90,7 +92,11 @@ func (s *SlackReporter) buildTeamReports(
 			log.Warn().Str("team", team).Msg("Skipping report for unconfigured team.")
 			continue
 		}
-		for name, repo := range repos {
+		// Retrieve the list of repo names so that we can report alphabetically
+		repoNames := maps.Keys(repos)
+		sort.Strings(repoNames)
+		for _, name := range repoNames {
+			repo := repos[name]
 			if name == SUMMARY_KEY {
 				continue
 			}
