@@ -44,8 +44,12 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	disableSlack := getBool(cmd.Flags(), "disable-slack")
 	if !disableSlack {
-		slackReporter := reporting.NewSlackReporter(userConfig, slackToken)
-		reporters = append(reporters, &slackReporter)
+		slackReporter, err := reporting.NewSlackReporter(userConfig, slackToken)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to create Slack reporter.")
+		} else {
+			reporters = append(reporters, &slackReporter)
+		}
 	}
 
 	ghOrgName, allRepos := api.QueryGithubOrgVulnerabilities(ghOrgLogin, *ghClient)

@@ -21,13 +21,6 @@ type SlackClientInterface interface {
 	PostMessage(channelID string, options ...slack.MsgOption) (string, string, error)
 }
 
-func NewSlackClient(slackToken string) (SlackClientInterface, error) {
-	if slackToken == "" {
-		return nil, fmt.Errorf("No Slack token was provided.")
-	}
-	return slack.New(slackToken, slack.OptionDebug(true)), nil
-}
-
 func (s *SlackReporter) SendSummaryReport(
 	header string,
 	numRepos int,
@@ -139,11 +132,10 @@ func (s *SlackReporter) GetReportTime() string {
 	return time.Now().Format(time.RFC1123)
 }
 
-func NewSlackReporter(config config.TomlConfig, slackToken string) SlackReporter {
-	log := logger.Get()
-	client, err := NewSlackClient(slackToken)
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed to create Slack client.")
+func NewSlackReporter(config config.TomlConfig, slackToken string) (SlackReporter, error) {
+	if slackToken == "" {
+		return SlackReporter{}, fmt.Errorf("No Slack token was provided.")
 	}
-	return SlackReporter{config: config, client: client}
+	client := slack.New(slackToken, slack.OptionDebug(true))
+	return SlackReporter{config: config, client: client}, nil
 }
