@@ -52,7 +52,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	teamReports := reporting.CollateTeamReports(vulnsByTeam)
 
 	reportTime := time.Now().Format(time.RFC1123)
-	summaryHeader := fmt.Sprintf("*%s Dependabot Report for %s*\n", ghOrgName, reportTime)
+	summaryHeader := fmt.Sprintf("%s Dependabot Report for %s", ghOrgName, reportTime)
 
 	disableSlack := getBool(cmd.Flags(), "disable-slack")
 	if !disableSlack {
