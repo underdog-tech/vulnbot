@@ -142,11 +142,11 @@ func (s *SlackReporter) GetReportTime() string {
 	return time.Now().Format(time.RFC1123)
 }
 
-func NewSlackReporter(config config.TomlConfig, slackToken string) *SlackReporter {
+func NewSlackReporter(config config.TomlConfig, slackToken string) SlackReporter {
 	log := logger.Get()
 	client, err := NewSlackClient(slackToken)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to create Slack client.")
 	}
-	return &SlackReporter{config: config, client: client}
+	return SlackReporter{config: config, client: client}
 }

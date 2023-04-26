@@ -40,7 +40,13 @@ func Scan(cmd *cobra.Command, args []string) {
 	httpClient := oauth2.NewClient(context.Background(), ghTokenSource)
 	ghClient := githubv4.NewClient(httpClient)
 
-	slackReporter := reporting.NewSlackReporter(userConfig, slackToken)
+	reporters := []reporting.Reporter{}
+
+	disableSlack := getBool(cmd.Flags(), "disable-slack")
+	if !disableSlack {
+		slackReporter := reporting.NewSlackReporter(userConfig, slackToken)
+		reporters = append(reporters, &slackReporter)
+	}
 
 	ghOrgName, allRepos := api.QueryGithubOrgVulnerabilities(ghOrgLogin, *ghClient)
 	repositoryOwners := api.QueryGithubOrgRepositoryOwners(ghOrgLogin, *ghClient)
@@ -54,18 +60,17 @@ func Scan(cmd *cobra.Command, args []string) {
 	reportTime := time.Now().Format(time.RFC1123)
 	summaryHeader := fmt.Sprintf("%s Dependabot Report for %s", ghOrgName, reportTime)
 
-	disableSlack := getBool(cmd.Flags(), "disable-slack")
-	if !disableSlack {
-		wg := new(sync.WaitGroup)
+	wg := new(sync.WaitGroup)
+	for _, reporter := range reporters {
 		wg.Add(2)
-		go slackReporter.SendSummaryReport(
+		go reporter.SendSummaryReport(
 			summaryHeader,
 			len(allRepos),
 			reporting.VulnerabilityReport(vulnSummary),
 			wg,
 		)
-		go slackReporter.SendTeamReports(teamReports, wg)
-		wg.Wait()
+		go reporter.SendTeamReports(teamReports, wg)
 	}
+	wg.Wait()
 	log.Info().Msg("Done!")
 }
