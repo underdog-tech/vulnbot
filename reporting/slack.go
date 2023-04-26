@@ -11,9 +11,6 @@ import (
 	"github.com/slack-go/slack"
 )
 
-const DEFAULT_ICON = " "
-const SUMMARY_KEY = "summary"
-
 type SlackReporter struct {
 	slackToken string
 	config     config.TomlConfig
@@ -54,7 +51,7 @@ func (s *SlackReporter) SendSummaryReport(
 	for severity, vulnCount := range report.VulnsBySeverity {
 		icon, err := config.GetIconForSeverity(severity, s.config.Severity)
 		if err != nil {
-			icon = DEFAULT_ICON
+			icon = DEFAULT_SLACK_ICON
 		}
 		severityReport = fmt.Sprintf("%s%s %s: %d\n", severityReport, icon, severity, vulnCount)
 	}
@@ -63,7 +60,7 @@ func (s *SlackReporter) SendSummaryReport(
 	for ecosystem, vulnCount := range report.VulnsByEcosystem {
 		icon, err := config.GetIconForEcosystem(ecosystem, s.config.Ecosystem)
 		if err != nil {
-			icon = DEFAULT_ICON
+			icon = DEFAULT_SLACK_ICON
 		}
 		ecosystemReport = fmt.Sprintf("%s%s %s: %d\n", ecosystemReport, icon, ecosystem, vulnCount)
 	}
@@ -95,7 +92,7 @@ func (s *SlackReporter) SendTeamReports(
 			for severity, count := range repo.VulnsBySeverity {
 				icon, err := config.GetIconForSeverity(severity, s.config.Severity)
 				if err != nil {
-					icon = DEFAULT_ICON
+					icon = DEFAULT_SLACK_ICON
 				}
 				repoReport += fmt.Sprintf("*%s %s*: %d ", icon, severity, count)
 			}

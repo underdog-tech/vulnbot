@@ -66,7 +66,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		go reporter.SendSummaryReport(
 			summaryHeader,
 			len(allRepos),
-			reporting.VulnerabilityReport(vulnSummary),
+			vulnSummary,
 			wg,
 		)
 		go reporter.SendTeamReports(teamReports, wg)

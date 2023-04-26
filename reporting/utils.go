@@ -7,8 +7,6 @@ import (
 	"github.com/underdog-tech/vulnbot/logger"
 )
 
-const NO_OWNER_KEY = "__none__"
-
 func TallyVulnsBySeverity(vulns []api.VulnerabilityAlert, vulnCounts map[string]int) {
 	for _, vuln := range vulns {
 		severity := strings.Title(strings.ToLower(vuln.SecurityVulnerability.Severity))
