@@ -21,14 +21,11 @@ type SlackClientInterface interface {
 	PostMessage(channelID string, options ...slack.MsgOption) (string, string, error)
 }
 
-func (s *SlackReporter) SendSummaryReport(
+func (s *SlackReporter) buildSummaryReport(
 	header string,
 	numRepos int,
 	report VulnerabilityReport,
-	wg *sync.WaitGroup,
-) error {
-	defer wg.Done()
-
+) string {
 	summaryReport := fmt.Sprintf(
 		"*%s*\n"+
 			"Total repositories: %d\n"+
@@ -41,7 +38,9 @@ func (s *SlackReporter) SendSummaryReport(
 	)
 
 	severityReport := "*Breakdown by Severity*\n"
-	for severity, vulnCount := range report.VulnsBySeverity {
+	severities := getSeverityReportOrder()
+	for _, severity := range severities {
+		vulnCount, _ := report.VulnsBySeverity[severity]
 		icon, err := config.GetIconForSeverity(severity, s.config.Severity)
 		if err != nil {
 			icon = DEFAULT_SLACK_ICON
@@ -50,7 +49,9 @@ func (s *SlackReporter) SendSummaryReport(
 	}
 
 	ecosystemReport := "*Breakdown by Ecosystem*\n"
-	for ecosystem, vulnCount := range report.VulnsByEcosystem {
+	ecosystems := getEcosystemReportOrder()
+	for _, ecosystem := range ecosystems {
+		vulnCount, _ := report.VulnsByEcosystem[ecosystem]
 		icon, err := config.GetIconForEcosystem(ecosystem, s.config.Ecosystem)
 		if err != nil {
 			icon = DEFAULT_SLACK_ICON
@@ -58,18 +59,30 @@ func (s *SlackReporter) SendSummaryReport(
 		ecosystemReport = fmt.Sprintf("%s%s %s: %d\n", ecosystemReport, icon, ecosystem, vulnCount)
 	}
 	summaryReport = fmt.Sprintf("%s\n%s\n%s", summaryReport, severityReport, ecosystemReport)
-	wg.Add(1)
-	s.sendSlackMessage(s.config.Default_slack_channel, summaryReport, wg)
-	return nil
+	return summaryReport
 }
 
-func (s *SlackReporter) SendTeamReports(
-	teamReports map[string]map[string]VulnerabilityReport,
+func (s *SlackReporter) SendSummaryReport(
+	header string,
+	numRepos int,
+	report VulnerabilityReport,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
+	summaryReport := s.buildSummaryReport(header, numRepos, report)
+	wg.Add(1)
+	go s.sendSlackMessage(s.config.Default_slack_channel, summaryReport, wg)
+	return nil
+}
+
+func (s *SlackReporter) buildTeamReports(
+	teamReports map[string]map[string]VulnerabilityReport,
+	reportTime string,
+) map[string]string {
 	log := logger.Get()
-	reportTime := s.GetReportTime()
+	slackMessages := map[string]string{}
+
+	severities := getSeverityReportOrder()
 	for team, repos := range teamReports {
 		teamReport := ""
 		teamInfo, err := config.GetTeamConfigBySlug(team, s.config.Team)
@@ -82,12 +95,13 @@ func (s *SlackReporter) SendTeamReports(
 				continue
 			}
 			repoReport := fmt.Sprintf("*%s* -- ", name)
-			for severity, count := range repo.VulnsBySeverity {
+			for _, severity := range severities {
+				count := repo.VulnsBySeverity[severity]
 				icon, err := config.GetIconForSeverity(severity, s.config.Severity)
 				if err != nil {
 					icon = DEFAULT_SLACK_ICON
 				}
-				repoReport += fmt.Sprintf("*%s %s*: %d ", icon, severity, count)
+				repoReport += fmt.Sprintf("%s *%s*: %d ", icon, severity, count)
 			}
 			repoReport += "\n"
 			teamReport += repoReport
@@ -102,13 +116,27 @@ func (s *SlackReporter) SendTeamReports(
 			teamSummary.AffectedRepos, // Subtract the summary report
 			teamSummary.TotalCount,
 		)
-		teamReport = teamSummaryReport + teamReport + "\n"
+		teamReport = teamSummaryReport + teamReport
 		if teamInfo.Slack_channel != "" {
-			wg.Add(1)
-			go s.sendSlackMessage(teamInfo.Slack_channel, teamReport, wg)
+			slackMessages[teamInfo.Slack_channel] = teamReport
 		} else {
 			log.Debug().Str("team", team).Str("teamReport", teamReport).Msg("Discarding team report because no Slack channel configured.")
 		}
+	}
+	return slackMessages
+}
+
+func (s *SlackReporter) SendTeamReports(
+	teamReports map[string]map[string]VulnerabilityReport,
+	wg *sync.WaitGroup,
+) error {
+	defer wg.Done()
+
+	reportTime := s.GetReportTime()
+	slackMessages := s.buildTeamReports(teamReports, reportTime)
+	for channel, message := range slackMessages {
+		wg.Add(1)
+		go s.sendSlackMessage(channel, message, wg)
 	}
 	return nil
 }

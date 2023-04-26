@@ -14,6 +14,10 @@ insert_final_newline = true
 [*.go]
 indent_style = tab
 
+# Trailing whitespace can be essential in tests.
+[*_test.go]
+trim_trailing_whitespace = false
+
 [*.md]
 trim_trailing_whitespace = false
 
