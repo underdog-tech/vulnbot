@@ -41,18 +41,18 @@ func (c *ConsoleReporter) SendSummaryReport(
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
-	summaryReport := color.Bold.Sprint(header + "\n")
+	summaryReport := color.Bold.Sprint(header) + "\n"
 	summaryReport += fmt.Sprintf("Total repositories: %d\n", numRepos)
 	summaryReport += fmt.Sprintf("Total vulnerabilities: %d\n", report.TotalCount)
 	summaryReport += fmt.Sprintf("Affected repositories: %d\n", report.AffectedRepos)
-	summaryReport += color.Bold.Sprint("Breakdown by Severity\n")
+	summaryReport += color.Bold.Sprint("Breakdown by Severity") + "\n"
 	severities := getSeverityReportOrder()
 	severityColors := getConsoleSeverityColors()
 	for _, severity := range severities {
 		title := color.HEX(severityColors[severity]).Sprint(severity)
 		summaryReport += fmt.Sprintf("%s: %d\n", title, report.VulnsBySeverity[severity])
 	}
-	summaryReport += color.Bold.Sprint("Breakdown by Ecosystem\n")
+	summaryReport += color.Bold.Sprint("Breakdown by Ecosystem") + "\n"
 	ecosystems := maps.Keys(report.VulnsByEcosystem)
 	sort.Strings(ecosystems)
 	ecosystemIcons := getConsoleEcosystemIcons()
