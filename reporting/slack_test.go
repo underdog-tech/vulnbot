@@ -94,10 +94,8 @@ Affected repositories: 2
   Low: 12
 
 *Breakdown by Ecosystem*
-  Go: 0
   Npm: 40
   Pip: 2
-  Rubygems: 0
 `
 
 	actual := reporter.buildSummaryReport("OrgName Dependabot Report for now", 13, report)

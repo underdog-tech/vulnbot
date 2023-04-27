@@ -51,7 +51,8 @@ func (s *SlackReporter) buildSummaryReport(
 	}
 
 	ecosystemReport := "*Breakdown by Ecosystem*\n"
-	ecosystems := getEcosystemReportOrder()
+	ecosystems := maps.Keys(report.VulnsByEcosystem)
+	sort.Strings(ecosystems)
 	for _, ecosystem := range ecosystems {
 		vulnCount, _ := report.VulnsByEcosystem[ecosystem]
 		icon, err := config.GetIconForEcosystem(ecosystem, s.config.Ecosystem)
