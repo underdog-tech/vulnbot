@@ -51,6 +51,7 @@ func Scan(cmd *cobra.Command, args []string) {
 			reporters = append(reporters, &slackReporter)
 		}
 	}
+	reporters = append(reporters, &reporting.ConsoleReporter{})
 
 	ghOrgName, allRepos := api.QueryGithubOrgVulnerabilities(ghOrgLogin, *ghClient)
 	repositoryOwners := api.QueryGithubOrgRepositoryOwners(ghOrgLogin, *ghClient)
