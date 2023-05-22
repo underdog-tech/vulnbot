@@ -24,6 +24,7 @@ func getConsoleSeverityColors() map[string]string {
 func getConsoleEcosystemIcons() map[string]string {
 	return map[string]string{
 		"Go":       "🦦",
+		"Maven":    "🪶 ",
 		"Npm":      "⬢ ",
 		"Pip":      "🐍",
 		"Rubygems": "♦️ ",
@@ -31,9 +32,11 @@ func getConsoleEcosystemIcons() map[string]string {
 }
 
 type ConsoleReporter struct {
-	config config.TomlConfig
+	Config config.TomlConfig
 }
 
+// SendSummaryReport generates a brief report summarizing all the discovered
+// vulnerabilities, and prints them out neatly and concisely to the console.
 func (c *ConsoleReporter) SendSummaryReport(
 	header string,
 	numRepos int,
@@ -63,6 +66,9 @@ func (c *ConsoleReporter) SendSummaryReport(
 	return nil
 }
 
+// SendTeamReports is a noop for the Console reporter for the time being.
+// Without taking a lot of time to focus on proper formatting, the output
+// of this could be quite overwhelming.
 func (c *ConsoleReporter) SendTeamReports(
 	teamReports map[string]map[string]VulnerabilityReport,
 	wg *sync.WaitGroup,
