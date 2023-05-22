@@ -33,3 +33,12 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// Excluding these because https://pkg.go.dev/vuln/GO-2021-0113
+// These are needed by google.golang.org/appengine
+// Which is needed by golang.org/x/oauth2
+// But everything seems to work without it, so ¯\_(ツ)_/¯
+exclude (
+	golang.org/x/text v0.3.0
+	golang.org/x/text v0.3.2
+)
