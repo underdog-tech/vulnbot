@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/underdog-tech/vulnbot/config"
 	"github.com/underdog-tech/vulnbot/logger"
@@ -16,7 +15,7 @@ import (
 
 type SlackReporter struct {
 	slackToken string
-	config     config.TomlConfig
+	Config     config.TomlConfig
 	client     SlackClientInterface
 }
 
@@ -49,7 +48,7 @@ func (s *SlackReporter) buildSummaryReport(
 	severities := getSeverityReportOrder()
 	for _, severity := range severities {
 		vulnCount, _ := report.VulnsBySeverity[severity]
-		icon, err := config.GetIconForSeverity(severity, s.config.Severity)
+		icon, err := config.GetIconForSeverity(severity, s.Config.Severity)
 		if err != nil {
 			icon = DEFAULT_SLACK_ICON
 		}
@@ -61,7 +60,7 @@ func (s *SlackReporter) buildSummaryReport(
 	sort.Strings(ecosystems)
 	for _, ecosystem := range ecosystems {
 		vulnCount, _ := report.VulnsByEcosystem[ecosystem]
-		icon, err := config.GetIconForEcosystem(ecosystem, s.config.Ecosystem)
+		icon, err := config.GetIconForEcosystem(ecosystem, s.Config.Ecosystem)
 		if err != nil {
 			icon = DEFAULT_SLACK_ICON
 		}
@@ -75,6 +74,7 @@ func (s *SlackReporter) SendSummaryReport(
 	header string,
 	numRepos int,
 	report VulnerabilityReport,
+	reportTime string,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
@@ -94,7 +94,7 @@ func (s *SlackReporter) buildTeamRepositoryReport(
 	vulnCounts := make([]string, 0)
 	for _, severity := range severities {
 		if severityIcon == "" && repoReport.VulnsBySeverity[severity] > 0 {
-			severityIcon, err = config.GetIconForSeverity(severity, s.config.Severity)
+			severityIcon, err = config.GetIconForSeverity(severity, s.Config.Severity)
 			if err != nil {
 				severityIcon = DEFAULT_SLACK_ICON
 			}
@@ -102,7 +102,7 @@ func (s *SlackReporter) buildTeamRepositoryReport(
 		vulnCounts = append(vulnCounts, fmt.Sprintf("%2d %s", repoReport.VulnsBySeverity[severity], severity))
 	}
 	if severityIcon == "" {
-		severityIcon, err = config.GetIconForSeverity("None", s.config.Severity)
+		severityIcon, err = config.GetIconForSeverity("None", s.Config.Severity)
 		if err != nil {
 			severityIcon = DEFAULT_SLACK_ICON
 		}
@@ -123,16 +123,19 @@ func (s *SlackReporter) buildTeamReports(
 
 	for team, repos := range teamReports {
 		teamReport := ""
-		teamInfo, err := config.GetTeamConfigBySlug(team, s.config.Team)
+		teamInfo, err := config.GetTeamConfigBySlug(team, s.Config.Team)
 		if err != nil {
 			log.Warn().Str("team", team).Msg("Skipping report for unconfigured team.")
 			continue
 		}
 		reportBlocks := []slack.Block{
 			slack.NewHeaderBlock(
-				slack.NewTextBlockObject(slack.PlainTextType, fmt.Sprintf("%s Dependabot Report for %s", teamInfo.Name, reportTime), true, false),
+				slack.NewTextBlockObject(slack.PlainTextType, fmt.Sprintf("%s Vulnbot Report", teamInfo.Name), true, false),
 			),
 			slack.NewDividerBlock(),
+			slack.NewContextBlock("", slack.NewTextBlockObject(
+				slack.MarkdownType, reportTime, false, false,
+			)),
 			slack.NewSectionBlock(
 				nil,
 				[]*slack.TextBlockObject{
@@ -165,11 +168,11 @@ func (s *SlackReporter) buildTeamReports(
 
 func (s *SlackReporter) SendTeamReports(
 	teamReports map[string]map[string]VulnerabilityReport,
+	reportTime string,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
 
-	reportTime := s.GetReportTime()
 	slackMessages := s.buildTeamReports(teamReports, reportTime)
 	for _, message := range slackMessages {
 		wg.Add(1)
@@ -193,14 +196,10 @@ func (s *SlackReporter) sendSlackMessage(channel string, message slack.MsgOption
 	}
 }
 
-func (s *SlackReporter) GetReportTime() string {
-	return time.Now().Format(time.RFC1123)
-}
-
 func NewSlackReporter(config config.TomlConfig, slackToken string) (SlackReporter, error) {
 	if slackToken == "" {
 		return SlackReporter{}, fmt.Errorf("No Slack token was provided.")
 	}
 	client := slack.New(slackToken, slack.OptionDebug(true))
-	return SlackReporter{config: config, client: client}, nil
+	return SlackReporter{Config: config, client: client}, nil
 }
