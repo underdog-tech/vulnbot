@@ -63,7 +63,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	teamReports := reporting.CollateTeamReports(vulnsByTeam)
 
 	reportTime := time.Now().Format(time.RFC1123)
-	summaryHeader := fmt.Sprintf("%s Dependabot Report for %s", ghOrgName, reportTime)
+	summaryHeader := fmt.Sprintf("%s Vulnbot Report for %s", ghOrgName, reportTime)
 
 	wg := new(sync.WaitGroup)
 	for _, reporter := range reporters {
