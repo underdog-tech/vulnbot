@@ -12,7 +12,7 @@ import (
 	"github.com/underdog-tech/vulnbot/config"
 )
 
-func TestSendSummaryReport(t *testing.T) {
+func TestSendConsoleSummaryReport(t *testing.T) {
 	origStdout := os.Stdout
 	reader, writer, _ := os.Pipe()
 	os.Stdout = writer

@@ -70,7 +70,7 @@ func TestSlackTokenIsNotMissing(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestBuildSummaryReport(t *testing.T) {
+func TestBuildSlackSummaryReport(t *testing.T) {
 	reporter := SlackReporter{}
 
 	// Construct a full summary report so that we can verify the output
@@ -182,7 +182,7 @@ func TestBuildSummaryReport(t *testing.T) {
 	assert.JSONEq(t, string(expected), string(actual))
 }
 
-func TestSendSummaryReportSendsSingleMessage(t *testing.T) {
+func TestSendSlackSummaryReportSendsSingleMessage(t *testing.T) {
 	mockClient := new(MockSlackClient)
 	config := config.TomlConfig{Default_slack_channel: "channel"}
 	reporter := SlackReporter{Config: config, client: mockClient}
@@ -201,7 +201,7 @@ func TestSendSummaryReportSendsSingleMessage(t *testing.T) {
 // This test is very long because it is attempting to verify we are generating
 // the proper message for multiple teams, which requires both a lot of input, as
 // well as a lot of output.
-func TestBuildTeamReports(t *testing.T) {
+func TestBuildSlackTeamReports(t *testing.T) {
 	// We want to provide config that contains 2 teams with channels, and one without.
 	// There will also be a report create for a team not included in this map.
 	config := config.TomlConfig{
@@ -264,7 +264,7 @@ Total vulnerabilities: 10
 	assert.Equal(t, expected, actual)
 }
 
-func TestSendTeamReportsSendsMessagePerTeam(t *testing.T) {
+func TestSendSlackTeamReportsSendsMessagePerTeam(t *testing.T) {
 	// We want to provide config that contains 2 teams with channels, and one without.
 	// There will also be a report create for a team not included in this map.
 	config := config.TomlConfig{
