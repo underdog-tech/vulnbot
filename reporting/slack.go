@@ -40,24 +40,22 @@ func (s *SlackReporter) buildSummaryReport(
 		),
 		slack.NewDividerBlock(),
 		slack.NewContextBlock("", slack.NewTextBlockObject(
-			slack.MarkdownType, reportTime, false, false,
+			slack.PlainTextType, reportTime, false, false,
 		)),
 		slack.NewSectionBlock(
-			nil,
-			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject(
-					slack.MarkdownType,
-					fmt.Sprintf(
-						"*Total repositories:* %d\n"+
-							"*Total vulnerabilities:* %d\n"+
-							"*Affected repositories:* %d\n",
-						numRepos,
-						report.TotalCount,
-						report.AffectedRepos,
-					),
-					false, false,
+			slack.NewTextBlockObject(
+				slack.MarkdownType,
+				fmt.Sprintf(
+					"*Total repositories:* %d\n"+
+						"*Total vulnerabilities:* %d\n"+
+						"*Affected repositories:* %d\n",
+					numRepos,
+					report.TotalCount,
+					report.AffectedRepos,
 				),
-			}, nil,
+				false, false,
+			),
+			nil, nil,
 		),
 		slack.NewHeaderBlock(
 			slack.NewTextBlockObject(slack.PlainTextType, "Breakdown by Severity", false, false),
@@ -72,14 +70,12 @@ func (s *SlackReporter) buildSummaryReport(
 			icon = DEFAULT_SLACK_ICON
 		}
 		reportBlocks = append(reportBlocks, slack.NewSectionBlock(
-			nil,
-			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject(
-					slack.MarkdownType,
-					fmt.Sprintf("%s *%s:* %d", icon, severity, vulnCount),
-					false, false,
-				),
-			}, nil,
+			slack.NewTextBlockObject(
+				slack.MarkdownType,
+				fmt.Sprintf("%s *%s:* %d", icon, severity, vulnCount),
+				false, false,
+			),
+			nil, nil,
 		))
 	}
 
@@ -95,14 +91,12 @@ func (s *SlackReporter) buildSummaryReport(
 			icon = DEFAULT_SLACK_ICON
 		}
 		reportBlocks = append(reportBlocks, slack.NewSectionBlock(
-			nil,
-			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject(
-					slack.MarkdownType,
-					fmt.Sprintf("%s *%s:* %d", icon, ecosystem, vulnCount),
-					false, false,
-				),
-			}, nil,
+			slack.NewTextBlockObject(
+				slack.MarkdownType,
+				fmt.Sprintf("%s *%s:* %d", icon, ecosystem, vulnCount),
+				false, false,
+			),
+			nil, nil,
 		))
 	}
 	return slack.NewBlockMessage(reportBlocks...)

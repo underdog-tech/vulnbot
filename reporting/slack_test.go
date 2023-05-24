@@ -1,6 +1,7 @@
 package reporting
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
@@ -23,13 +24,13 @@ func (m *MockSlackClient) PostMessage(channelID string, options ...slack.MsgOpti
 func TestSendSlackMessagesSuccess(t *testing.T) {
 	mockClient := new(MockSlackClient)
 	config := config.TomlConfig{}
-	reporter := SlackReporter{config: config, client: mockClient}
+	reporter := SlackReporter{Config: config, client: mockClient}
 
 	mockClient.On("PostMessage", "channel", mock.Anything, mock.Anything).Return("", "", nil).Once()
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.sendSlackMessage("channel", "message", wg)
+	reporter.sendSlackMessage("channel", slack.MsgOptionText("message", false), wg)
 
 	mockClient.AssertExpectations(t)
 }
@@ -37,13 +38,13 @@ func TestSendSlackMessagesSuccess(t *testing.T) {
 func TestSendSlackMessagesError(t *testing.T) {
 	mockClient := new(MockSlackClient)
 	config := config.TomlConfig{}
-	reporter := SlackReporter{config: config, client: mockClient}
+	reporter := SlackReporter{Config: config, client: mockClient}
 
 	mockClient.On("PostMessage", "channel", mock.Anything, mock.Anything).Return("", "", fmt.Errorf("Failed to send Slack message")).Once()
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.sendSlackMessage("channel", "message", wg)
+	reporter.sendSlackMessage("channel", slack.MsgOptionText("message", false), wg)
 
 	mockClient.AssertExpectations(t)
 }
@@ -52,11 +53,11 @@ func TestSendSlackMessagesError(t *testing.T) {
 func TestSendSlackMessageWithNoClient(t *testing.T) {
 	config := config.TomlConfig{}
 	// Create a report instance with NO client
-	reporter := SlackReporter{config: config}
+	reporter := SlackReporter{Config: config}
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.sendSlackMessage("channel", "message", wg)
+	reporter.sendSlackMessage("channel", slack.MsgOptionText("message", false), wg)
 }
 
 func TestIsSlackTokenMissing(t *testing.T) {
@@ -82,37 +83,116 @@ func TestBuildSummaryReport(t *testing.T) {
 	report.VulnsBySeverity["High"] = 10
 	report.VulnsBySeverity["Moderate"] = 10
 	report.VulnsBySeverity["Low"] = 12
-	expected := `*OrgName Dependabot Report for now*
-Total repositories: 13
-Total vulnerabilities: 42
-Affected repositories: 2
 
-*Breakdown by Severity*
-  Critical: 10
-  High: 10
-  Moderate: 10
-  Low: 12
-
-*Breakdown by Ecosystem*
-  Npm: 40
-  Pip: 2
-`
-
-	actual := reporter.buildSummaryReport("OrgName Dependabot Report for now", 13, report)
-	assert.Equal(t, expected, actual)
+	expected_data := map[string]interface{}{
+		"replace_original": false,
+		"delete_original":  false,
+		"metadata": map[string]interface{}{
+			"event_payload": nil,
+			"event_type":    "",
+		},
+		"blocks": []map[string]interface{}{
+			{
+				"type": "header",
+				"text": map[string]interface{}{
+					"type": "plain_text",
+					"text": "OrgName Vulnbot Report",
+				},
+			},
+			{
+				"type": "divider",
+			},
+			{
+				"type": "context",
+				"elements": []map[string]interface{}{
+					{
+						"type": "plain_text",
+						"text": "now",
+					},
+				},
+			},
+			{
+				"type": "section",
+				"text": map[string]interface{}{
+					"type": "mrkdwn",
+					"text": "*Total repositories:* 13\n*Total vulnerabilities:* 42\n*Affected repositories:* 2\n",
+				},
+			},
+			{
+				"type": "header",
+				"text": map[string]interface{}{
+					"type": "plain_text",
+					"text": "Breakdown by Severity",
+				},
+			},
+			{
+				"type": "section",
+				"text": map[string]interface{}{
+					"type": "mrkdwn",
+					"text": "  *Critical:* 10",
+				},
+			},
+			{
+				"type": "section",
+				"text": map[string]interface{}{
+					"type": "mrkdwn",
+					"text": "  *High:* 10",
+				},
+			},
+			{
+				"type": "section",
+				"text": map[string]interface{}{
+					"type": "mrkdwn",
+					"text": "  *Moderate:* 10",
+				},
+			},
+			{
+				"type": "section",
+				"text": map[string]interface{}{
+					"type": "mrkdwn",
+					"text": "  *Low:* 12",
+				},
+			},
+			{
+				"type": "header",
+				"text": map[string]interface{}{
+					"type": "plain_text",
+					"text": "Breakdown by Ecosystem",
+				},
+			},
+			{
+				"type": "section",
+				"text": map[string]interface{}{
+					"type": "mrkdwn",
+					"text": "  *Npm:* 40",
+				},
+			},
+			{
+				"type": "section",
+				"text": map[string]interface{}{
+					"type": "mrkdwn",
+					"text": "  *Pip:* 2",
+				},
+			},
+		},
+	}
+	expected, _ := json.Marshal(expected_data)
+	summary := reporter.buildSummaryReport("OrgName Vulnbot Report", 13, report, "now")
+	actual, _ := json.Marshal(summary)
+	assert.JSONEq(t, string(expected), string(actual))
 }
 
 func TestSendSummaryReportSendsSingleMessage(t *testing.T) {
 	mockClient := new(MockSlackClient)
 	config := config.TomlConfig{Default_slack_channel: "channel"}
-	reporter := SlackReporter{config: config, client: mockClient}
+	reporter := SlackReporter{Config: config, client: mockClient}
 	report := NewVulnerabilityReport()
 
 	mockClient.On("PostMessage", "channel", mock.Anything, mock.Anything).Return("", "", nil).Once()
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.SendSummaryReport("Foo", 1, report, wg)
+	reporter.SendSummaryReport("Foo", 1, report, "now", wg)
 	wg.Wait()
 
 	mockClient.AssertExpectations(t)
@@ -131,7 +211,7 @@ func TestBuildTeamReports(t *testing.T) {
 			{Name: "baz", Github_slug: "baz"},
 		},
 	}
-	reporter := SlackReporter{config: config}
+	reporter := SlackReporter{Config: config}
 
 	repo1Report := NewVulnerabilityReport()
 	repo1Report.VulnsByEcosystem["Pip"] = 10
@@ -195,7 +275,7 @@ func TestSendTeamReportsSendsMessagePerTeam(t *testing.T) {
 		},
 	}
 	mockClient := new(MockSlackClient)
-	reporter := SlackReporter{config: config, client: mockClient}
+	reporter := SlackReporter{Config: config, client: mockClient}
 	repo1Report := NewVulnerabilityReport()
 	repo2Report := NewVulnerabilityReport()
 	teamReports := map[string]map[string]VulnerabilityReport{
@@ -212,7 +292,7 @@ func TestSendTeamReportsSendsMessagePerTeam(t *testing.T) {
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.SendTeamReports(teamReports, wg)
+	reporter.SendTeamReports(teamReports, "now", wg)
 	wg.Wait()
 
 	mockClient.AssertExpectations(t)
