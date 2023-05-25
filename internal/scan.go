@@ -53,6 +53,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 	reporters = append(reporters, &reporting.ConsoleReporter{Config: userConfig})
 
+	reportTime := time.Now().Format(time.RFC1123)
 	ghOrgName, allRepos := api.QueryGithubOrgVulnerabilities(ghOrgLogin, *ghClient)
 	repositoryOwners := api.QueryGithubOrgRepositoryOwners(ghOrgLogin, *ghClient)
 	// Count our vulnerabilities
@@ -62,8 +63,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	vulnsByTeam := reporting.GroupVulnsByOwner(allRepos, repositoryOwners)
 	teamReports := reporting.CollateTeamReports(vulnsByTeam)
 
-	reportTime := time.Now().Format(time.RFC1123)
-	summaryHeader := fmt.Sprintf("%s Dependabot Report for %s", ghOrgName, reportTime)
+	summaryHeader := fmt.Sprintf("%s Vulnbot Report", ghOrgName)
 
 	wg := new(sync.WaitGroup)
 	for _, reporter := range reporters {
@@ -72,9 +72,10 @@ func Scan(cmd *cobra.Command, args []string) {
 			summaryHeader,
 			len(allRepos),
 			vulnSummary,
+			reportTime,
 			wg,
 		)
-		go reporter.SendTeamReports(teamReports, wg)
+		go reporter.SendTeamReports(teamReports, reportTime, wg)
 	}
 	wg.Wait()
 	log.Info().Msg("Done!")

@@ -3,8 +3,8 @@ package reporting
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
-	"time"
 
 	"github.com/underdog-tech/vulnbot/config"
 	"github.com/underdog-tech/vulnbot/logger"
@@ -15,8 +15,13 @@ import (
 
 type SlackReporter struct {
 	slackToken string
-	config     config.TomlConfig
+	Config     config.TomlConfig
 	client     SlackClientInterface
+}
+
+type SlackReport struct {
+	ChannelID string
+	Message   *slack.Message
 }
 
 type SlackClientInterface interface {
@@ -27,107 +32,177 @@ func (s *SlackReporter) buildSummaryReport(
 	header string,
 	numRepos int,
 	report VulnerabilityReport,
-) string {
-	summaryReport := fmt.Sprintf(
-		"*%s*\n"+
-			"Total repositories: %d\n"+
-			"Total vulnerabilities: %d\n"+
-			"Affected repositories: %d\n",
-		header,
-		numRepos,
-		report.TotalCount,
-		report.AffectedRepos,
-	)
+	reportTime string,
+) slack.Message {
+	reportBlocks := []slack.Block{
+		slack.NewHeaderBlock(
+			slack.NewTextBlockObject(slack.PlainTextType, header, false, false),
+		),
+		slack.NewDividerBlock(),
+		slack.NewContextBlock("", slack.NewTextBlockObject(
+			slack.PlainTextType, reportTime, false, false,
+		)),
+		slack.NewSectionBlock(
+			slack.NewTextBlockObject(
+				slack.MarkdownType,
+				fmt.Sprintf(
+					"*Total repositories:* %d\n"+
+						"*Total vulnerabilities:* %d\n"+
+						"*Affected repositories:* %d\n",
+					numRepos,
+					report.TotalCount,
+					report.AffectedRepos,
+				),
+				false, false,
+			),
+			nil, nil,
+		),
+		slack.NewHeaderBlock(
+			slack.NewTextBlockObject(slack.PlainTextType, "Breakdown by Severity", false, false),
+		),
+	}
 
-	severityReport := "*Breakdown by Severity*\n"
 	severities := getSeverityReportOrder()
 	for _, severity := range severities {
 		vulnCount, _ := report.VulnsBySeverity[severity]
-		icon, err := config.GetIconForSeverity(severity, s.config.Severity)
+		icon, err := config.GetIconForSeverity(severity, s.Config.Severity)
 		if err != nil {
 			icon = DEFAULT_SLACK_ICON
 		}
-		severityReport = fmt.Sprintf("%s%s %s: %d\n", severityReport, icon, severity, vulnCount)
+		reportBlocks = append(reportBlocks, slack.NewSectionBlock(
+			slack.NewTextBlockObject(
+				slack.MarkdownType,
+				fmt.Sprintf("%s *%s:* %d", icon, severity, vulnCount),
+				false, false,
+			),
+			nil, nil,
+		))
 	}
 
-	ecosystemReport := "*Breakdown by Ecosystem*\n"
+	reportBlocks = append(reportBlocks, slack.NewHeaderBlock(
+		slack.NewTextBlockObject(slack.PlainTextType, "Breakdown by Ecosystem", false, false),
+	))
 	ecosystems := maps.Keys(report.VulnsByEcosystem)
 	sort.Strings(ecosystems)
 	for _, ecosystem := range ecosystems {
 		vulnCount, _ := report.VulnsByEcosystem[ecosystem]
-		icon, err := config.GetIconForEcosystem(ecosystem, s.config.Ecosystem)
+		icon, err := config.GetIconForEcosystem(ecosystem, s.Config.Ecosystem)
 		if err != nil {
 			icon = DEFAULT_SLACK_ICON
 		}
-		ecosystemReport = fmt.Sprintf("%s%s %s: %d\n", ecosystemReport, icon, ecosystem, vulnCount)
+		reportBlocks = append(reportBlocks, slack.NewSectionBlock(
+			slack.NewTextBlockObject(
+				slack.MarkdownType,
+				fmt.Sprintf("%s *%s:* %d", icon, ecosystem, vulnCount),
+				false, false,
+			),
+			nil, nil,
+		))
 	}
-	summaryReport = fmt.Sprintf("%s\n%s\n%s", summaryReport, severityReport, ecosystemReport)
-	return summaryReport
+	return slack.NewBlockMessage(reportBlocks...)
 }
 
 func (s *SlackReporter) SendSummaryReport(
 	header string,
 	numRepos int,
 	report VulnerabilityReport,
+	reportTime string,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
-	summaryReport := s.buildSummaryReport(header, numRepos, report)
+	summaryReport := s.buildSummaryReport(header, numRepos, report, reportTime)
 	wg.Add(1)
-	go s.sendSlackMessage(s.config.Default_slack_channel, summaryReport, wg)
+	go s.sendSlackMessage(s.Config.Default_slack_channel, slack.MsgOptionBlocks(summaryReport.Blocks.BlockSet...), wg)
 	return nil
 }
 
-func (s *SlackReporter) buildTeamReports(
-	teamReports map[string]map[string]VulnerabilityReport,
-	reportTime string,
-) map[string]string {
-	log := logger.Get()
-	slackMessages := map[string]string{}
-
+func (s *SlackReporter) buildTeamRepositoryReport(
+	repoName string,
+	repoReport VulnerabilityReport,
+) *slack.SectionBlock {
+	var err error
+	var severityIcon string
 	severities := getSeverityReportOrder()
-	for team, repos := range teamReports {
-		teamReport := ""
-		teamInfo, err := config.GetTeamConfigBySlug(team, s.config.Team)
+	vulnCounts := make([]string, 0)
+	for _, severity := range severities {
+		if severityIcon == "" && repoReport.VulnsBySeverity[severity] > 0 {
+			severityIcon, err = config.GetIconForSeverity(severity, s.Config.Severity)
+			if err != nil {
+				severityIcon = DEFAULT_SLACK_ICON
+			}
+		}
+		vulnCounts = append(vulnCounts, fmt.Sprintf("%2d %s", repoReport.VulnsBySeverity[severity], severity))
+	}
+	if severityIcon == "" {
+		severityIcon, err = config.GetIconForSeverity("None", s.Config.Severity)
 		if err != nil {
-			log.Warn().Str("team", team).Msg("Skipping report for unconfigured team.")
+			severityIcon = DEFAULT_SLACK_ICON
+		}
+	}
+	fields := []*slack.TextBlockObject{
+		slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf("%s *%s*", severityIcon, repoName), false, false),
+		slack.NewTextBlockObject(slack.MarkdownType, strings.Join(vulnCounts, " | "), false, false),
+	}
+	return slack.NewSectionBlock(nil, fields, nil)
+}
+
+func (s *SlackReporter) buildTeamReport(
+	teamID string,
+	repos map[string]VulnerabilityReport,
+	reportTime string,
+) *SlackReport {
+	log := logger.Get()
+	teamInfo, err := config.GetTeamConfigBySlug(teamID, s.Config.Team)
+	if err != nil {
+		log.Warn().Err(err).Str("team", teamID).Msg("Skipping report for unconfigured team.")
+		return nil
+	}
+	if teamInfo.Slack_channel == "" {
+		log.Debug().Str("team", teamID).Any("repos", repos).Msg("Skipping report since Slack channel is not configured.")
+		return nil
+	}
+	reportBlocks := []slack.Block{
+		slack.NewHeaderBlock(
+			slack.NewTextBlockObject(slack.PlainTextType, fmt.Sprintf("%s Vulnbot Report", teamInfo.Name), false, false),
+		),
+		slack.NewDividerBlock(),
+		slack.NewContextBlock("", slack.NewTextBlockObject(
+			slack.PlainTextType, reportTime, false, false,
+		)),
+		slack.NewSectionBlock(
+			nil,
+			[]*slack.TextBlockObject{
+				slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf("*%4d Total Vulnerabilities*", repos[SUMMARY_KEY].TotalCount), false, false),
+				// TODO: Add a block with the breakdown by severity
+			},
+			nil,
+		),
+		slack.NewDividerBlock(),
+	}
+	// Retrieve the list of repo names so that we can report alphabetically
+	repoNames := maps.Keys(repos)
+	sort.Strings(repoNames)
+	for _, name := range repoNames {
+		repo := repos[name]
+		if name == SUMMARY_KEY {
 			continue
 		}
-		// Retrieve the list of repo names so that we can report alphabetically
-		repoNames := maps.Keys(repos)
-		sort.Strings(repoNames)
-		for _, name := range repoNames {
-			repo := repos[name]
-			if name == SUMMARY_KEY {
-				continue
-			}
-			repoReport := fmt.Sprintf("*%s* -- ", name)
-			for _, severity := range severities {
-				count := repo.VulnsBySeverity[severity]
-				icon, err := config.GetIconForSeverity(severity, s.config.Severity)
-				if err != nil {
-					icon = DEFAULT_SLACK_ICON
-				}
-				repoReport += fmt.Sprintf("%s *%s*: %d ", icon, severity, count)
-			}
-			repoReport += "\n"
-			teamReport += repoReport
-		}
-		teamSummary := repos[SUMMARY_KEY]
-		teamSummaryReport := fmt.Sprintf(
-			"*%s Dependabot Report for %s*\n"+
-				"Affected repositories: %d\n"+
-				"Total vulnerabilities: %d\n",
-			teamInfo.Name,
-			reportTime,
-			teamSummary.AffectedRepos, // Subtract the summary report
-			teamSummary.TotalCount,
-		)
-		teamReport = teamSummaryReport + teamReport
-		if teamInfo.Slack_channel != "" {
-			slackMessages[teamInfo.Slack_channel] = teamReport
-		} else {
-			log.Debug().Str("team", team).Str("teamReport", teamReport).Msg("Discarding team report because no Slack channel configured.")
+		reportBlocks = append(reportBlocks, s.buildTeamRepositoryReport(name, repo))
+	}
+	message := slack.NewBlockMessage(reportBlocks...)
+	return &SlackReport{ChannelID: teamInfo.Slack_channel, Message: &message}
+}
+
+func (s *SlackReporter) buildAllTeamReports(
+	teamReports map[string]map[string]VulnerabilityReport,
+	reportTime string,
+) []*SlackReport {
+	slackMessages := []*SlackReport{}
+
+	for team, repos := range teamReports {
+		report := s.buildTeamReport(team, repos, reportTime)
+		if report != nil {
+			slackMessages = append(slackMessages, report)
 		}
 	}
 	return slackMessages
@@ -135,36 +210,32 @@ func (s *SlackReporter) buildTeamReports(
 
 func (s *SlackReporter) SendTeamReports(
 	teamReports map[string]map[string]VulnerabilityReport,
+	reportTime string,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
 
-	reportTime := s.GetReportTime()
-	slackMessages := s.buildTeamReports(teamReports, reportTime)
-	for channel, message := range slackMessages {
+	slackMessages := s.buildAllTeamReports(teamReports, reportTime)
+	for _, message := range slackMessages {
 		wg.Add(1)
-		go s.sendSlackMessage(channel, message, wg)
+		go s.sendSlackMessage(message.ChannelID, slack.MsgOptionBlocks(message.Message.Blocks.BlockSet...), wg)
 	}
 	return nil
 }
 
-func (s *SlackReporter) sendSlackMessage(channel string, message string, wg *sync.WaitGroup) {
+func (s *SlackReporter) sendSlackMessage(channel string, message slack.MsgOption, wg *sync.WaitGroup) {
 	defer wg.Done()
 	log := logger.Get()
 	if s.client != nil {
-		_, timestamp, err := s.client.PostMessage(channel, slack.MsgOptionText(message, false), slack.MsgOptionAsUser(true))
+		_, timestamp, err := s.client.PostMessage(channel, message, slack.MsgOptionAsUser(true))
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to send Slack message.")
 		} else {
 			log.Info().Str("channel", channel).Str("timestamp", timestamp).Msg("Message sent to Slack.")
 		}
 	} else {
-		log.Warn().Str("message", message).Str("channel", channel).Msg("No Slack client available. Message not sent.")
+		log.Warn().Any("message", message).Str("channel", channel).Msg("No Slack client available. Message not sent.")
 	}
-}
-
-func (s *SlackReporter) GetReportTime() string {
-	return time.Now().Format(time.RFC1123)
 }
 
 func NewSlackReporter(config config.TomlConfig, slackToken string) (SlackReporter, error) {
@@ -172,5 +243,5 @@ func NewSlackReporter(config config.TomlConfig, slackToken string) (SlackReporte
 		return SlackReporter{}, fmt.Errorf("No Slack token was provided.")
 	}
 	client := slack.New(slackToken, slack.OptionDebug(true))
-	return SlackReporter{config: config, client: client}, nil
+	return SlackReporter{Config: config, client: client}, nil
 }

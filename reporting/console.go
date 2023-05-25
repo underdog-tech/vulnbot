@@ -41,6 +41,7 @@ func (c *ConsoleReporter) SendSummaryReport(
 	header string,
 	numRepos int,
 	report VulnerabilityReport,
+	reportTime string,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
@@ -71,6 +72,7 @@ func (c *ConsoleReporter) SendSummaryReport(
 // of this could be quite overwhelming.
 func (c *ConsoleReporter) SendTeamReports(
 	teamReports map[string]map[string]VulnerabilityReport,
+	reportTime string,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
