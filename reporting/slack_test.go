@@ -260,7 +260,7 @@ Total vulnerabilities: 10
 *repo1* --   *Critical*: 0   *High*: 0   *Moderate*: 0   *Low*: 10 
 `,
 	}
-	actual := reporter.buildTeamReports(teamReports, "now")
+	actual := reporter.buildAllTeamReports(teamReports, "now")
 	assert.Equal(t, expected, actual)
 }
 

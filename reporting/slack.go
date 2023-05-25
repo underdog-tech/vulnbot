@@ -146,53 +146,63 @@ func (s *SlackReporter) buildTeamRepositoryReport(
 	return slack.NewSectionBlock(nil, fields, nil)
 }
 
-func (s *SlackReporter) buildTeamReports(
-	teamReports map[string]map[string]VulnerabilityReport,
+func (s *SlackReporter) buildTeamReport(
+	teamID string,
+	repos map[string]VulnerabilityReport,
 	reportTime string,
-) []SlackReport {
+) *SlackReport {
 	log := logger.Get()
-	slackMessages := []SlackReport{}
-
-	for team, repos := range teamReports {
-		teamReport := ""
-		teamInfo, err := config.GetTeamConfigBySlug(team, s.Config.Team)
-		if err != nil {
-			log.Warn().Str("team", team).Msg("Skipping report for unconfigured team.")
+	teamInfo, err := config.GetTeamConfigBySlug(teamID, s.Config.Team)
+	if err != nil {
+		log.Warn().Err(err).Str("team", teamID).Msg("Skipping report for unconfigured team.")
+		return nil
+	}
+	if teamInfo.Slack_channel == "" {
+		log.Debug().Str("team", teamID).Any("repos", repos).Msg("Skipping report since Slack channel is not configured.")
+		return nil
+	}
+	reportBlocks := []slack.Block{
+		slack.NewHeaderBlock(
+			slack.NewTextBlockObject(slack.PlainTextType, fmt.Sprintf("%s Vulnbot Report", teamInfo.Name), true, false),
+		),
+		slack.NewDividerBlock(),
+		slack.NewContextBlock("", slack.NewTextBlockObject(
+			slack.MarkdownType, reportTime, false, false,
+		)),
+		slack.NewSectionBlock(
+			nil,
+			[]*slack.TextBlockObject{
+				slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf("*%4d Total Vulnerabilities*", repos[SUMMARY_KEY].TotalCount), false, false),
+				// TODO: Add a block with the breakdown by severity
+			},
+			nil,
+		),
+		slack.NewDividerBlock(),
+	}
+	// Retrieve the list of repo names so that we can report alphabetically
+	repoNames := maps.Keys(repos)
+	sort.Strings(repoNames)
+	for _, name := range repoNames {
+		repo := repos[name]
+		if name == SUMMARY_KEY {
 			continue
 		}
-		reportBlocks := []slack.Block{
-			slack.NewHeaderBlock(
-				slack.NewTextBlockObject(slack.PlainTextType, fmt.Sprintf("%s Vulnbot Report", teamInfo.Name), true, false),
-			),
-			slack.NewDividerBlock(),
-			slack.NewContextBlock("", slack.NewTextBlockObject(
-				slack.MarkdownType, reportTime, false, false,
-			)),
-			slack.NewSectionBlock(
-				nil,
-				[]*slack.TextBlockObject{
-					slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf("*%4d Total Vulnerabilities*", repos[SUMMARY_KEY].TotalCount), false, false),
-					// TODO: Add a block with the breakdown by severity
-				},
-				nil,
-			),
-			slack.NewDividerBlock(),
-		}
-		// Retrieve the list of repo names so that we can report alphabetically
-		repoNames := maps.Keys(repos)
-		sort.Strings(repoNames)
-		for _, name := range repoNames {
-			repo := repos[name]
-			if name == SUMMARY_KEY {
-				continue
-			}
-			reportBlocks = append(reportBlocks, s.buildTeamRepositoryReport(name, repo))
-		}
-		if teamInfo.Slack_channel != "" {
-			message := slack.NewBlockMessage(reportBlocks...)
-			slackMessages = append(slackMessages, SlackReport{ChannelID: teamInfo.Slack_channel, Message: &message})
-		} else {
-			log.Debug().Str("team", team).Str("teamReport", teamReport).Msg("Discarding team report because no Slack channel configured.")
+		reportBlocks = append(reportBlocks, s.buildTeamRepositoryReport(name, repo))
+	}
+	message := slack.NewBlockMessage(reportBlocks...)
+	return &SlackReport{ChannelID: teamInfo.Slack_channel, Message: &message}
+}
+
+func (s *SlackReporter) buildAllTeamReports(
+	teamReports map[string]map[string]VulnerabilityReport,
+	reportTime string,
+) []*SlackReport {
+	slackMessages := []*SlackReport{}
+
+	for team, repos := range teamReports {
+		report := s.buildTeamReport(team, repos, reportTime)
+		if report != nil {
+			slackMessages = append(slackMessages, report)
 		}
 	}
 	return slackMessages
@@ -205,7 +215,7 @@ func (s *SlackReporter) SendTeamReports(
 ) error {
 	defer wg.Done()
 
-	slackMessages := s.buildTeamReports(teamReports, reportTime)
+	slackMessages := s.buildAllTeamReports(teamReports, reportTime)
 	for _, message := range slackMessages {
 		wg.Add(1)
 		go s.sendSlackMessage(message.ChannelID, slack.MsgOptionBlocks(message.Message.Blocks.BlockSet...), wg)
