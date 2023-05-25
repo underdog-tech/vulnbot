@@ -264,6 +264,35 @@ Total vulnerabilities: 10
 	assert.Equal(t, expected, actual)
 }
 
+func TestBuildSlackTeamRepositoryReport(t *testing.T) {
+	reporter := SlackReporter{}
+
+	report := NewVulnerabilityReport()
+	report.VulnsByEcosystem["Pip"] = 15
+	report.VulnsBySeverity["Critical"] = 2
+	report.VulnsBySeverity["High"] = 3
+	report.VulnsBySeverity["Low"] = 10
+
+	expected_data := map[string]interface{}{
+		"type": "section",
+		"fields": []map[string]interface{}{
+			{
+				"type": "mrkdwn",
+				"text": "  *foo*",
+			},
+			{
+				"type": "mrkdwn",
+				"text": " 2 Critical |  3 High |  0 Moderate | 10 Low",
+			},
+		},
+	}
+
+	expected, _ := json.Marshal(expected_data)
+	repoReport := reporter.buildTeamRepositoryReport("foo", report)
+	actual, _ := json.Marshal(repoReport)
+	assert.JSONEq(t, string(expected), string(actual))
+}
+
 func TestSendSlackTeamReportsSendsMessagePerTeam(t *testing.T) {
 	// We want to provide config that contains 2 teams with channels, and one without.
 	// There will also be a report create for a team not included in this map.
