@@ -293,6 +293,97 @@ func TestBuildSlackTeamRepositoryReport(t *testing.T) {
 	assert.JSONEq(t, string(expected), string(actual))
 }
 
+func TestBuildSlackTeamReport(t *testing.T) {
+	config := config.TomlConfig{
+		Team: []config.TeamConfig{
+			{Name: "TeamName", Slack_channel: "team-foo", Github_slug: "TeamName"},
+		},
+	}
+	reporter := SlackReporter{Config: config}
+
+	repo1Report := NewVulnerabilityReport()
+	repo1Report.VulnsByEcosystem["Pip"] = 10
+	repo1Report.VulnsBySeverity["Low"] = 10
+
+	repo2Report := NewVulnerabilityReport()
+	repo2Report.VulnsByEcosystem["Pip"] = 5
+	repo2Report.VulnsBySeverity["Critical"] = 1
+	repo2Report.VulnsBySeverity["Moderate"] = 4
+
+	summaryReport := NewVulnerabilityReport()
+	summaryReport.AffectedRepos = 2
+	summaryReport.TotalCount = 15
+
+	repoReports := map[string]VulnerabilityReport{
+		"repo1":     repo1Report,
+		"repo2":     repo2Report,
+		SUMMARY_KEY: summaryReport,
+	}
+
+	// `buildTeamRepositoryReport` is tested elsewhere, so no need to manually
+	// build up its output here.
+	// We have to marshal and then unmarshal to get then into JSON format then
+	// back into a Go data structure.
+	var repo1Expected, repo2Expected map[string]interface{}
+	repo1Data := reporter.buildTeamRepositoryReport("repo1", repo1Report)
+	repo2Data := reporter.buildTeamRepositoryReport("repo2", repo2Report)
+	repo1ExpectedBytes, _ := json.Marshal(repo1Data)
+	json.Unmarshal(repo1ExpectedBytes, &repo1Expected)
+	repo2ExpectedBytes, _ := json.Marshal(repo2Data)
+	json.Unmarshal(repo2ExpectedBytes, &repo2Expected)
+
+	expectedData := map[string]interface{}{
+		"replace_original": false,
+		"delete_original":  false,
+		"metadata": map[string]interface{}{
+			"event_payload": nil,
+			"event_type":    "",
+		},
+		"blocks": []map[string]interface{}{
+			{
+				"type": "header",
+				"text": map[string]interface{}{
+					"type": "plain_text",
+					"text": "TeamName Vulnbot Report",
+				},
+			},
+			{
+				"type": "divider",
+			},
+			{
+				"type": "context",
+				"elements": []map[string]interface{}{
+					{
+						"type": "plain_text",
+						"text": "now",
+					},
+				},
+			},
+			{
+				"type": "section",
+				"fields": []map[string]interface{}{
+					{
+						"type": "mrkdwn",
+						"text": "*  15 Total Vulnerabilities*",
+					},
+				},
+			},
+			{
+				"type": "divider",
+			},
+			repo1Expected,
+			repo2Expected,
+		},
+	}
+	expected, _ := json.Marshal(expectedData)
+	teamReport := reporter.buildTeamReport("TeamName", repoReports, "now")
+	actual, _ := json.Marshal(teamReport.Message)
+	// Ensure the Slack Blocks match up
+	assert.JSONEq(t, string(expected), string(actual))
+	// Ensure it's set for the right channel.
+	assert.Equal(t, "team-foo", teamReport.ChannelID)
+}
+
 func TestSendSlackTeamReportsSendsMessagePerTeam(t *testing.T) {
 	// We want to provide config that contains 2 teams with channels, and one without.
 	// There will also be a report create for a team not included in this map.

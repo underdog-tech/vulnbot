@@ -163,11 +163,11 @@ func (s *SlackReporter) buildTeamReport(
 	}
 	reportBlocks := []slack.Block{
 		slack.NewHeaderBlock(
-			slack.NewTextBlockObject(slack.PlainTextType, fmt.Sprintf("%s Vulnbot Report", teamInfo.Name), true, false),
+			slack.NewTextBlockObject(slack.PlainTextType, fmt.Sprintf("%s Vulnbot Report", teamInfo.Name), false, false),
 		),
 		slack.NewDividerBlock(),
 		slack.NewContextBlock("", slack.NewTextBlockObject(
-			slack.MarkdownType, reportTime, false, false,
+			slack.PlainTextType, reportTime, false, false,
 		)),
 		slack.NewSectionBlock(
 			nil,
