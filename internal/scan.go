@@ -53,7 +53,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 	reporters = append(reporters, &reporting.ConsoleReporter{Config: userConfig})
 
-	reportTime := reportTime := time.Now().UTC().Unix()
+	reportTime := time.Now().UTC().Unix()
 	ghOrgName, allRepos := api.QueryGithubOrgVulnerabilities(ghOrgLogin, *ghClient)
 	repositoryOwners := api.QueryGithubOrgRepositoryOwners(ghOrgLogin, *ghClient)
 	// Count our vulnerabilities
