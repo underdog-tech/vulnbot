@@ -55,7 +55,7 @@ Affected repositories: 2
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.SendSummaryReport("OrgName Dependabot Report for now", 13, report, "now", wg)
+	reporter.SendSummaryReport("OrgName Dependabot Report for now", 13, report, UNIX_TIME, wg)
 	writer.Close()
 	written, _ := ioutil.ReadAll(reader)
 	os.Stdout = origStdout

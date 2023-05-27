@@ -7,12 +7,12 @@ type Reporter interface {
 		header string,
 		numRepos int,
 		report VulnerabilityReport,
-		reportTime string,
+		reportTime int64,
 		wg *sync.WaitGroup,
 	) error
 	SendTeamReports(
 		teamReports map[string]map[string]VulnerabilityReport,
-		reportTime string,
+		reportTime int64,
 		wg *sync.WaitGroup,
 	) error
 }
