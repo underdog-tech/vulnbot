@@ -294,7 +294,7 @@ func TestBuildSlackTeamReport(t *testing.T) {
 				"elements": []map[string]interface{}{
 					{
 						"type": "plain_text",
-						"text": "now",
+						"text": strconv.Itoa(int(UNIX_TIME)),
 					},
 				},
 			},
