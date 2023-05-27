@@ -3,6 +3,7 @@ package reporting
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -10,6 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/underdog-tech/vulnbot/config"
+)
+
+const (
+	UNIX_TIME = 1672534800
 )
 
 type MockSlackClient struct {
@@ -107,7 +112,7 @@ func TestBuildSlackSummaryReport(t *testing.T) {
 				"elements": []map[string]interface{}{
 					{
 						"type": "plain_text",
-						"text": "now",
+						"text": strconv.Itoa(int(UNIX_TIME)),
 					},
 				},
 			},
@@ -177,7 +182,7 @@ func TestBuildSlackSummaryReport(t *testing.T) {
 		},
 	}
 	expected, _ := json.Marshal(expected_data)
-	summary := reporter.buildSummaryReport("OrgName Vulnbot Report", 13, report, "now")
+	summary := reporter.buildSummaryReport("OrgName Vulnbot Report", 13, report, UNIX_TIME)
 	actual, _ := json.Marshal(summary)
 	assert.JSONEq(t, string(expected), string(actual))
 }
@@ -192,7 +197,7 @@ func TestSendSlackSummaryReportSendsSingleMessage(t *testing.T) {
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.SendSummaryReport("Foo", 1, report, "now", wg)
+	reporter.SendSummaryReport("Foo", 1, report, UNIX_TIME, wg)
 	wg.Wait()
 
 	mockClient.AssertExpectations(t)
@@ -310,7 +315,7 @@ func TestBuildSlackTeamReport(t *testing.T) {
 		},
 	}
 	expected, _ := json.Marshal(expectedData)
-	teamReport := reporter.buildTeamReport("TeamName", repoReports, "now")
+	teamReport := reporter.buildTeamReport("TeamName", repoReports, UNIX_TIME)
 	actual, _ := json.Marshal(teamReport.Message)
 	// Ensure the Slack Blocks match up
 	assert.JSONEq(t, string(expected), string(actual))
@@ -346,7 +351,7 @@ func TestSendSlackTeamReportsSendsMessagePerTeam(t *testing.T) {
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.SendTeamReports(teamReports, "now", wg)
+	reporter.SendTeamReports(teamReports, UNIX_TIME, wg)
 	wg.Wait()
 
 	mockClient.AssertExpectations(t)
