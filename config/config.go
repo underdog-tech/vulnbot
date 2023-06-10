@@ -33,7 +33,7 @@ type TomlConfig struct {
 
 func LoadConfig(configFilePath *string) TomlConfig {
 	var config TomlConfig
-	log := logger.Get()
+	log := logger.Get(!logger.QuietLogger)
 
 	_, err := toml.DecodeFile(*configFilePath, &config)
 	if err != nil {

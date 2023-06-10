@@ -19,7 +19,7 @@ import (
 )
 
 func Scan(cmd *cobra.Command, args []string) {
-	log := logger.Get()
+	log := logger.Get(!logger.QuietLogger)
 
 	// Load the configuration file
 	configFilePath := getString(cmd.Flags(), "config")

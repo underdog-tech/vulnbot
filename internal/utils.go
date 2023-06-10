@@ -7,7 +7,7 @@ import (
 )
 
 func checkErr(err error) {
-	log := logger.Get()
+	log := logger.Get(!logger.QuietLogger)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unexpected error extracting the flag.")
 	}

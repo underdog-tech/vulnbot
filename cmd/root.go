@@ -19,18 +19,19 @@ Vulnbot empowers developers and security teams to efficiently manage and respond
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	if !quietFlagValue {
-		log := logger.Get()
 
-		err := rootCmd.Execute()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to execute command.")
-		}
+	log := logger.Get(!logger.QuietLogger)
+
+	err := rootCmd.Execute()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to execute command.")
 	}
+
 }
 
 func init() {
 	persistent := rootCmd.PersistentFlags()
 	persistent.BoolP("disable-slack", "d", false, "Disable Slack alerts.")
 	persistent.StringP("config", "c", "config.toml", "Config file path.")
+	persistent.BoolVarP(&logger.QuietLogger, "quietlogger", "q", false, "Use this to turn off all the console logger")
 }

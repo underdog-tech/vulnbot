@@ -46,7 +46,7 @@ type OrgVulnerabilityQuery struct {
 
 func QueryGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) (orgName string, repositories []VulnerabilityRepository) {
 	var alertQuery OrgVulnerabilityQuery
-	log := logger.Get()
+	log := logger.Get(!logger.QuietLogger)
 
 	// Construct the variables necessary for our GraphQL query
 	queryVars := map[string]interface{}{
@@ -105,7 +105,7 @@ type orgRepositoryOwnerQuery struct {
 
 func QueryGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client) map[string][]string {
 	var ownerQuery orgRepositoryOwnerQuery
-	log := logger.Get()
+	log := logger.Get(!logger.QuietLogger)
 
 	queryVars := map[string]interface{}{
 		"login":       githubv4.String(ghOrgLogin),

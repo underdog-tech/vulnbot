@@ -15,8 +15,9 @@ import (
 
 var once sync.Once
 var log zerolog.Logger
+var QuietLogger bool
 
-func Get() zerolog.Logger {
+func Get(enable bool) zerolog.Logger {
 	once.Do(func() {
 		var logLevel int8
 
@@ -41,6 +42,11 @@ func Get() zerolog.Logger {
 			Str("go_version", buildInfo.GoVersion).
 			Logger()
 	})
+	QuietLogger = !enable
+
+	if QuietLogger {
+		log = zerolog.Nop()
+	}
 
 	return log
 }

@@ -151,7 +151,7 @@ func (s *SlackReporter) buildTeamReport(
 	repos map[string]VulnerabilityReport,
 	reportTime string,
 ) *SlackReport {
-	log := logger.Get()
+	log := logger.Get(!logger.QuietLogger)
 	teamInfo, err := config.GetTeamConfigBySlug(teamID, s.Config.Team)
 	if err != nil {
 		log.Warn().Err(err).Str("team", teamID).Msg("Skipping report for unconfigured team.")
@@ -225,7 +225,7 @@ func (s *SlackReporter) SendTeamReports(
 
 func (s *SlackReporter) sendSlackMessage(channel string, message slack.MsgOption, wg *sync.WaitGroup) {
 	defer wg.Done()
-	log := logger.Get()
+	log := logger.Get(!logger.QuietLogger)
 	if s.client != nil {
 		_, timestamp, err := s.client.PostMessage(channel, message, slack.MsgOptionAsUser(true))
 		if err != nil {

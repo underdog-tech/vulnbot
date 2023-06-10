@@ -26,7 +26,7 @@ func TallyVulnsByEcosystem(vulns []api.VulnerabilityAlert, vulnCounts map[string
 }
 
 func GetRepositoryOwners(repoName string, repositoryOwners map[string][]string) []string {
-	log := logger.Get()
+	log := logger.Get(!logger.QuietLogger)
 	owners, exists := repositoryOwners[repoName]
 	if !exists {
 		log.Warn().Str("repo", repoName).Msg("No owners found for repository.")
@@ -36,7 +36,7 @@ func GetRepositoryOwners(repoName string, repositoryOwners map[string][]string) 
 }
 
 func CollateSummaryReport(repos []api.VulnerabilityRepository) (report VulnerabilityReport) {
-	log := logger.Get()
+	log := logger.Get(!logger.QuietLogger)
 	report = NewVulnerabilityReport()
 	for _, repo := range repos {
 		repoVulns := repo.VulnerabilityAlerts.TotalCount
@@ -71,7 +71,7 @@ func GroupVulnsByOwner(repos []api.VulnerabilityRepository, owners map[string][]
 }
 
 func CollateTeamReports(vulnsByTeam map[string][]api.VulnerabilityRepository) (teamReports map[string]map[string]VulnerabilityReport) {
-	log := logger.Get()
+	log := logger.Get(!logger.QuietLogger)
 
 	teamReports = map[string]map[string]VulnerabilityReport{}
 	for team, repos := range vulnsByTeam {
