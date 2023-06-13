@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/gookit/color"
 	"github.com/underdog-tech/vulnbot/config"
@@ -41,22 +42,23 @@ func (c *ConsoleReporter) SendSummaryReport(
 	header string,
 	numRepos int,
 	report VulnerabilityReport,
-	reportTime int64,
+	reportTime time.Time,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
 	summaryReport := color.Bold.Sprint(header) + "\n"
+	summaryReport += color.Style{color.OpItalic}.Sprint(reportTime.Format(time.RFC1123)) + "\n\n"
 	summaryReport += fmt.Sprintf("Total repositories: %d\n", numRepos)
 	summaryReport += fmt.Sprintf("Total vulnerabilities: %d\n", report.TotalCount)
 	summaryReport += fmt.Sprintf("Affected repositories: %d\n", report.AffectedRepos)
-	summaryReport += color.Bold.Sprint("Breakdown by Severity") + "\n"
+	summaryReport += "\n" + color.Bold.Sprint("Breakdown by Severity") + "\n"
 	severities := getSeverityReportOrder()
 	severityColors := getConsoleSeverityColors()
 	for _, severity := range severities {
 		title := color.HEX(severityColors[severity]).Sprint(severity)
 		summaryReport += fmt.Sprintf("%s: %d\n", title, report.VulnsBySeverity[severity])
 	}
-	summaryReport += color.Bold.Sprint("Breakdown by Ecosystem") + "\n"
+	summaryReport += "\n" + color.Bold.Sprint("Breakdown by Ecosystem") + "\n"
 	ecosystems := maps.Keys(report.VulnsByEcosystem)
 	sort.Strings(ecosystems)
 	ecosystemIcons := getConsoleEcosystemIcons()
@@ -72,7 +74,7 @@ func (c *ConsoleReporter) SendSummaryReport(
 // of this could be quite overwhelming.
 func (c *ConsoleReporter) SendTeamReports(
 	teamReports map[string]map[string]VulnerabilityReport,
-	reportTime int64,
+	reportTime time.Time,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()

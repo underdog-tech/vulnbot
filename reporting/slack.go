@@ -5,12 +5,11 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/underdog-tech/vulnbot/config"
 	"github.com/underdog-tech/vulnbot/logger"
 	"golang.org/x/exp/maps"
-
-	"strconv"
 
 	"github.com/slack-go/slack"
 )
@@ -34,7 +33,7 @@ func (s *SlackReporter) buildSummaryReport(
 	header string,
 	numRepos int,
 	report VulnerabilityReport,
-	reportTime int64,
+	reportTime time.Time,
 ) slack.Message {
 	reportBlocks := []slack.Block{
 		slack.NewHeaderBlock(
@@ -42,7 +41,7 @@ func (s *SlackReporter) buildSummaryReport(
 		),
 		slack.NewDividerBlock(),
 		slack.NewContextBlock("", slack.NewTextBlockObject(
-			slack.PlainTextType, strconv.Itoa(int(reportTime)), false, false,
+			slack.PlainTextType, reportTime.Format(time.RFC1123), false, false,
 		)),
 		slack.NewSectionBlock(
 			slack.NewTextBlockObject(
@@ -108,7 +107,7 @@ func (s *SlackReporter) SendSummaryReport(
 	header string,
 	numRepos int,
 	report VulnerabilityReport,
-	reportTime int64,
+	reportTime time.Time,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
@@ -151,7 +150,7 @@ func (s *SlackReporter) buildTeamRepositoryReport(
 func (s *SlackReporter) buildTeamReport(
 	teamID string,
 	repos map[string]VulnerabilityReport,
-	reportTime int64,
+	reportTime time.Time,
 ) *SlackReport {
 	log := logger.Get()
 	teamInfo, err := config.GetTeamConfigBySlug(teamID, s.Config.Team)
@@ -169,7 +168,7 @@ func (s *SlackReporter) buildTeamReport(
 		),
 		slack.NewDividerBlock(),
 		slack.NewContextBlock("", slack.NewTextBlockObject(
-			slack.PlainTextType, strconv.Itoa(int(reportTime)), false, false,
+			slack.PlainTextType, reportTime.Format(time.RFC1123), false, false,
 		)),
 		slack.NewSectionBlock(
 			nil,
@@ -197,7 +196,7 @@ func (s *SlackReporter) buildTeamReport(
 
 func (s *SlackReporter) buildAllTeamReports(
 	teamReports map[string]map[string]VulnerabilityReport,
-	reportTime int64,
+	reportTime time.Time,
 ) []*SlackReport {
 	slackMessages := []*SlackReport{}
 
@@ -212,7 +211,7 @@ func (s *SlackReporter) buildAllTeamReports(
 
 func (s *SlackReporter) SendTeamReports(
 	teamReports map[string]map[string]VulnerabilityReport,
-	reportTime int64,
+	reportTime time.Time,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
