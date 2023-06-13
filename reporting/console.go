@@ -47,7 +47,7 @@ func (c *ConsoleReporter) SendSummaryReport(
 ) error {
 	defer wg.Done()
 	summaryReport := color.Bold.Sprint(header) + "\n"
-	summaryReport += color.Style{color.OpItalic}.Sprint(reportTime.Local().Format(time.RFC1123)) + "\n\n"
+	summaryReport += color.Style{color.OpItalic}.Sprint(reportTime.Format(time.RFC1123)) + "\n\n"
 	summaryReport += fmt.Sprintf("Total repositories: %d\n", numRepos)
 	summaryReport += fmt.Sprintf("Total vulnerabilities: %d\n", report.TotalCount)
 	summaryReport += fmt.Sprintf("Affected repositories: %d\n", report.AffectedRepos)

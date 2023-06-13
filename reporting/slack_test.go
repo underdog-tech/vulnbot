@@ -3,9 +3,9 @@ package reporting
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
@@ -13,9 +13,8 @@ import (
 	"github.com/underdog-tech/vulnbot/config"
 )
 
-const (
-	UNIX_TIME = 1672534800
-)
+var TEST_REPORT_TIME time.Time = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+var TEST_REPORT_TIME_FORMATTED string = "Thu, 01 Jan 1970 00:00:00 UTC"
 
 type MockSlackClient struct {
 	mock.Mock
@@ -112,7 +111,7 @@ func TestBuildSlackSummaryReport(t *testing.T) {
 				"elements": []map[string]interface{}{
 					{
 						"type": "plain_text",
-						"text": strconv.Itoa(int(UNIX_TIME)),
+						"text": TEST_REPORT_TIME_FORMATTED,
 					},
 				},
 			},
@@ -182,7 +181,7 @@ func TestBuildSlackSummaryReport(t *testing.T) {
 		},
 	}
 	expected, _ := json.Marshal(expected_data)
-	summary := reporter.buildSummaryReport("OrgName Vulnbot Report", 13, report, UNIX_TIME)
+	summary := reporter.buildSummaryReport("OrgName Vulnbot Report", 13, report, TEST_REPORT_TIME)
 	actual, _ := json.Marshal(summary)
 	assert.JSONEq(t, string(expected), string(actual))
 }
@@ -197,7 +196,7 @@ func TestSendSlackSummaryReportSendsSingleMessage(t *testing.T) {
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.SendSummaryReport("Foo", 1, report, UNIX_TIME, wg)
+	reporter.SendSummaryReport("Foo", 1, report, TEST_REPORT_TIME, wg)
 	wg.Wait()
 
 	mockClient.AssertExpectations(t)
@@ -294,7 +293,7 @@ func TestBuildSlackTeamReport(t *testing.T) {
 				"elements": []map[string]interface{}{
 					{
 						"type": "plain_text",
-						"text": strconv.Itoa(int(UNIX_TIME)),
+						"text": TEST_REPORT_TIME_FORMATTED,
 					},
 				},
 			},
@@ -315,7 +314,7 @@ func TestBuildSlackTeamReport(t *testing.T) {
 		},
 	}
 	expected, _ := json.Marshal(expectedData)
-	teamReport := reporter.buildTeamReport("TeamName", repoReports, UNIX_TIME)
+	teamReport := reporter.buildTeamReport("TeamName", repoReports, TEST_REPORT_TIME)
 	actual, _ := json.Marshal(teamReport.Message)
 	// Ensure the Slack Blocks match up
 	assert.JSONEq(t, string(expected), string(actual))
@@ -351,7 +350,7 @@ func TestSendSlackTeamReportsSendsMessagePerTeam(t *testing.T) {
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.SendTeamReports(teamReports, UNIX_TIME, wg)
+	reporter.SendTeamReports(teamReports, TEST_REPORT_TIME, wg)
 	wg.Wait()
 
 	mockClient.AssertExpectations(t)

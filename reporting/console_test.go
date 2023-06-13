@@ -30,19 +30,24 @@ func TestSendConsoleSummaryReport(t *testing.T) {
 	severityColors := getConsoleSeverityColors()
 	ecosystemIcons := getConsoleEcosystemIcons()
 	expected := fmt.Sprintf(`%s
+%s
+
 Total repositories: 13
 Total vulnerabilities: 42
 Affected repositories: 2
+
 %s
 %s: 10
 %s: 10
 %s: 10
 %s: 12
+
 %s
 %s Npm: 40
 %s Pip: 2
 `,
-		color.Bold.Sprint("OrgName Dependabot Report for now"),
+		color.Bold.Sprint("OrgName Dependabot Report"),
+		color.Style{color.OpItalic}.Sprint(TEST_REPORT_TIME_FORMATTED),
 		color.Bold.Sprint("Breakdown by Severity"),
 		color.HEX(severityColors["Critical"]).Sprint("Critical"),
 		color.HEX(severityColors["High"]).Sprint("High"),
@@ -55,7 +60,7 @@ Affected repositories: 2
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.SendSummaryReport("OrgName Dependabot Report for now", 13, report, UNIX_TIME, wg)
+	reporter.SendSummaryReport("OrgName Dependabot Report", 13, report, TEST_REPORT_TIME, wg)
 	writer.Close()
 	written, _ := ioutil.ReadAll(reader)
 	os.Stdout = origStdout
