@@ -1,18 +1,21 @@
 package reporting
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type Reporter interface {
 	SendSummaryReport(
 		header string,
 		numRepos int,
 		report VulnerabilityReport,
-		reportTime int64,
+		reportTime time.Time,
 		wg *sync.WaitGroup,
 	) error
 	SendTeamReports(
 		teamReports map[string]map[string]VulnerabilityReport,
-		reportTime int64,
+		reportTime time.Time,
 		wg *sync.WaitGroup,
 	) error
 }
