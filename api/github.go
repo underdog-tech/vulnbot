@@ -62,7 +62,11 @@ func QueryGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) 
 		if err != nil {
 			log.Panic().Err(err).Msg("Failed to query GitHub!")
 		}
-		allRepos = append(allRepos, alertQuery.Organization.Repositories.Nodes...)
+		for _, node := range alertQuery.Organization.Repositories.Nodes {
+			if !node.IsArchived {
+				allRepos = append(allRepos, node)
+			}
+		}
 		if !alertQuery.Organization.Repositories.PageInfo.HasNextPage {
 			break
 		}
