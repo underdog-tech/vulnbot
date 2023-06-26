@@ -2,38 +2,69 @@ name: Go
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
+  docker-tests:
+    strategy:
+      matrix:
+        arch: ["linux/arm64", "linux/amd64"]
+    name: Docker Tests for ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Test Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          platforms: ${{ matrix.arch }}
+          push: false
+          target: test
 
   build:
     strategy:
       matrix:
-        go: ['1.18', '1.19', '1.20']
-        os: ['windows-2019', 'windows-2022', 'ubuntu-20.04', 'ubuntu-22.04', 'macos-11', 'macos-12']
+        go: ["1.18", "1.19", "1.20"]
+        os:
+          [
+            "windows-2019",
+            "windows-2022",
+            "ubuntu-20.04",
+            "ubuntu-22.04",
+            "macos-11",
+            "macos-12",
+            "macos-13",
+          ]
     env:
       OS: ${{ matrix.os }}
       GO: ${{ matrix.go }}
     runs-on: ${{ matrix.os }}
     name: Build & test with Go ${{ matrix.go }} on ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go }}
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go }}
 
-    - name: Build
-      run: go build -v ./...
+      - name: Build
+        run: go build -v ./...
 
-    - name: Test
-      run: go test -v -race -covermode=atomic -coverprofile="coverage.out" -coverpkg=./... ./...
+      - name: Test
+        run: go test -v -race -covermode=atomic -coverprofile="coverage.out" -coverpkg=./... ./...
 
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        env_vars: OS,GO
-        flags: unittests
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          env_vars: OS,GO
+          flags: unittests
