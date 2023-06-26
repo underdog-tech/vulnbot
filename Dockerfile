@@ -1,16 +1,23 @@
-FROM alpine:3.17 AS base
+FROM golang:1.20 AS build
 
 WORKDIR /app
 
-FROM base AS builder
+# Make sure the dependency downloading can be cached
+COPY go.mod go.sum ./
+RUN go mod download
 
 COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o ./vulnbot
 
-RUN apk update && apk upgrade && apk add go
-RUN go build .
+FROM build as test
+RUN go test -v -race ./...
 
-FROM base AS final
+# Final image uses a barebones image
+FROM gcr.io/distroless/base-debian11 AS release
 
-COPY --from=builder /app/vulnbot /app/
+WORKDIR /
+COPY --from=build /app/vulnbot /vulnbot
 
-ENTRYPOINT [ "./vulnbot" ]
+USER nonroot:nonroot
+
+ENTRYPOINT [ "/vulnbot" ]
