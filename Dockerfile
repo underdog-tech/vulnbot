@@ -16,7 +16,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o ./vulnbot
 # This stage is by default un-used, but allows us to easily run our tests inside
 # of an actual Docker image.
 FROM build as test
-RUN go test -v -race ./...
+
+# We do not use -race here because it is not supported on arm64
+# https://github.com/golang/go/issues/29948
+RUN go test -v ./...
 
 # Final image uses a barebones image
 FROM scratch AS release
