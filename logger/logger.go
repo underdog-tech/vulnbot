@@ -6,28 +6,21 @@ import (
 	"io"
 	"os"
 	"runtime/debug"
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
 )
 
-var once sync.Once
+const DEFAULT_LOG_LEVEL = zerolog.WarnLevel
+
+var lock = sync.Mutex{}
 var log zerolog.Logger
+var once sync.Once
 
 func Get() zerolog.Logger {
 	once.Do(func() {
-		var logLevel int8
-
 		zerolog.TimeFieldFormat = time.RFC3339Nano
-		parsed, err := strconv.ParseInt(os.Getenv("LOG_LEVEL"), 10, 8)
-		if err != nil {
-			logLevel = int8(zerolog.InfoLevel) // Default to INFO
-		} else {
-			logLevel = int8(parsed)
-		}
-
 		var output io.Writer = zerolog.ConsoleWriter{
 			Out:        os.Stdout,
 			TimeFormat: time.RFC3339,
@@ -35,12 +28,20 @@ func Get() zerolog.Logger {
 
 		buildInfo, _ := debug.ReadBuildInfo()
 		log = zerolog.New(output).
-			Level(zerolog.Level(logLevel)).
 			With().
 			Timestamp().
 			Str("go_version", buildInfo.GoVersion).
 			Logger()
 	})
 
+	return log
+}
+
+func SetLogLevel(logLevel zerolog.Level) zerolog.Logger {
+	lock.Lock()
+	log := Get()
+	zerolog.SetGlobalLevel(logLevel)
+	log = log.Level(logLevel)
+	lock.Unlock()
 	return log
 }
