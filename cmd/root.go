@@ -21,8 +21,7 @@ Vulnbot empowers developers and security teams to efficiently manage and respond
 
 		if quiet == true {
 			logger.SetLogLevel(zerolog.Disabled)
-		}
-		if verbosity > 0 {
+		} else if verbosity > 0 {
 			if verbosity > 3 {
 				verbosity = 3
 			}

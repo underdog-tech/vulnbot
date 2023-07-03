@@ -14,7 +14,6 @@ import (
 
 const DEFAULT_LOG_LEVEL = zerolog.WarnLevel
 
-var lock = sync.Mutex{}
 var log zerolog.Logger
 var once sync.Once
 
@@ -38,10 +37,8 @@ func Get() zerolog.Logger {
 }
 
 func SetLogLevel(logLevel zerolog.Level) zerolog.Logger {
-	lock.Lock()
 	log := Get()
 	zerolog.SetGlobalLevel(logLevel)
 	log = log.Level(logLevel)
-	lock.Unlock()
 	return log
 }
