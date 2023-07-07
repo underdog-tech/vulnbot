@@ -72,6 +72,7 @@ func LoadConfig(configFilePath *string) TomlConfig {
 		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
 	}
 
+	log.Debug().Any("config", config).Msg("Config loaded.")
 	return config
 }
 
@@ -91,6 +92,7 @@ func LoadEnv() Env {
 		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
 	}
 
+	log.Debug().Any("env", env).Msg("Env loaded.")
 	return env
 }
 
