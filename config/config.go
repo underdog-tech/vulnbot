@@ -2,11 +2,16 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/underdog-tech/vulnbot/logger"
 
-	"github.com/BurntSushi/toml"
+	v "github.com/spf13/viper"
 )
+
+var viper *v.Viper
 
 type SeverityConfig struct {
 	Label       string
@@ -31,16 +36,62 @@ type TomlConfig struct {
 	Team                  []TeamConfig
 }
 
+type Env struct {
+	GithubOrg      string `mapstructure:"GITHUB_ORG"`
+	SlackAuthToken string `mapstructure:"SLACK_AUTH_TOKEN"`
+	GithubToken    string `mapstructure:"GITHUB_TOKEN"`
+}
+
+func getViper() *v.Viper {
+	if viper == nil {
+		viper = v.New()
+	}
+	return viper
+}
+
 func LoadConfig(configFilePath *string) TomlConfig {
 	var config TomlConfig
 	log := logger.Get()
 
-	_, err := toml.DecodeFile(*configFilePath, &config)
+	v := getViper()
+
+	filename := filepath.Base(*configFilePath)
+	extension := filepath.Ext(*configFilePath)
+
+	currentDir, err := os.Getwd()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error loading config file.")
+		log.Fatal().Err(err).Msg("Failed to get current working directory.")
 	}
-	log.Debug().Any("config", config).Msg("Config loaded.")
+
+	v.SetConfigName(filename)
+	v.AddConfigPath(currentDir)
+	v.SetConfigType(strings.TrimLeft(extension, "."))
+	v.ReadInConfig()
+
+	if v.Unmarshal(&config); err != nil {
+		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
+	}
+
 	return config
+}
+
+func LoadEnv() Env {
+	var env Env
+	log := logger.Get()
+
+	v := getViper()
+
+	// Read in environment variables that match
+	v.SetConfigFile(".env")
+	v.AutomaticEnv()
+	v.ReadInConfig()
+
+	err := v.Unmarshal(&env)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
+	}
+
+	return env
 }
 
 func GetIconForSeverity(severity string, severities []SeverityConfig) (string, error) {
