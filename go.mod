@@ -9,6 +9,7 @@ require (
 	github.com/slack-go/slack v0.12.2
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
+	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.3
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	golang.org/x/oauth2 v0.8.0
@@ -31,7 +32,6 @@ require (
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/viper v1.16.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
@@ -51,4 +51,25 @@ require (
 exclude (
 	golang.org/x/text v0.3.0
 	golang.org/x/text v0.3.2
+	golang.org/x/text v0.3.3
+	golang.org/x/text v0.3.4
+	golang.org/x/text v0.3.6
+	golang.org/x/text v0.3.7
+	google.golang.org/grpc v1.19.0
+	google.golang.org/grpc v1.20.1
+	google.golang.org/grpc v1.21.1
+	google.golang.org/grpc v1.23.0
+	google.golang.org/grpc v1.25.1
+	google.golang.org/grpc v1.26.0
+	google.golang.org/grpc v1.27.0
+	google.golang.org/grpc v1.27.1
+	google.golang.org/grpc v1.28.0
+	google.golang.org/grpc v1.29.1
+	google.golang.org/grpc v1.30.0
+	google.golang.org/grpc v1.31.0
+	google.golang.org/grpc v1.31.1
+	google.golang.org/grpc v1.33.2
+	google.golang.org/grpc v1.34.0
+	google.golang.org/grpc v1.35.0
+	gopkg.in/yaml.v2 v2.2.2
 )
