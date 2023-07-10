@@ -66,7 +66,10 @@ func LoadConfig(configFilePath *string) TomlConfig {
 	v.SetConfigName(filename)
 	v.AddConfigPath(currentDir)
 	v.SetConfigType(strings.TrimLeft(extension, "."))
-	v.ReadInConfig()
+
+	if v.ReadInConfig(); err != nil {
+		log.Fatal().Err(err).Msg("Unable to read config.")
+	}
 
 	if v.Unmarshal(&config); err != nil {
 		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
@@ -85,9 +88,13 @@ func LoadEnv() Env {
 	// Read in environment variables that match
 	v.SetConfigFile(".env")
 	v.AutomaticEnv()
-	v.ReadInConfig()
 
-	err := v.Unmarshal(&env)
+	err := v.ReadInConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to read config.")
+	}
+
+	err = v.Unmarshal(&env)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
 	}
