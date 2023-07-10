@@ -67,11 +67,13 @@ func LoadConfig(configFilePath *string) TomlConfig {
 	v.AddConfigPath(currentDir)
 	v.SetConfigType(strings.TrimLeft(extension, "."))
 
-	if v.ReadInConfig(); err != nil {
+	err = v.ReadInConfig()
+	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to read config.")
 	}
 
-	if v.Unmarshal(&config); err != nil {
+	err = v.Unmarshal(&config)
+	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
 	}
 
