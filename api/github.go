@@ -40,7 +40,7 @@ type OrgVulnerabilityQuery struct {
 				HasNextPage bool
 			}
 			Nodes []VulnerabilityRepository
-		} `graphql:"repositories(orderBy: {field: NAME, direction: ASC}, isFork: false, first: 100, after: $reposCursor)"`
+		} `graphql:"repositories(orderBy: {field: NAME, direction: ASC}, isFork: false, isArchived: false, first: 100, after: $reposCursor)"`
 	} `graphql:"organization(login: $login)"`
 }
 
@@ -62,11 +62,7 @@ func QueryGithubOrgVulnerabilities(ghOrgLogin string, ghClient githubv4.Client) 
 		if err != nil {
 			log.Panic().Err(err).Msg("Failed to query GitHub!")
 		}
-		for _, node := range alertQuery.Organization.Repositories.Nodes {
-			if !node.IsArchived {
-				allRepos = append(allRepos, node)
-			}
-		}
+		allRepos = append(allRepos, alertQuery.Organization.Repositories.Nodes...)
 		if !alertQuery.Organization.Repositories.PageInfo.HasNextPage {
 			break
 		}
