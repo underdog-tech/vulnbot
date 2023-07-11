@@ -23,18 +23,24 @@ func Scan(cmd *cobra.Command, args []string) {
 	configPath := getString(cmd.Flags(), "config")
 	viper := config.NewViper()
 	var userConfig *config.Config
-	viper.LoadConfig(config.ViperParams{
+	err := viper.LoadConfig(config.ViperParams{
 		Output:     userConfig,
 		ConfigPath: &configPath,
 	})
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to load configuration.")
+	}
 
 	// Load ENV file
 	var env *config.Env
 	envFileName := ".env"
-	viper.LoadEnv(config.ViperParams{
+	err = viper.LoadEnv(config.ViperParams{
 		Output:      env,
 		EnvFileName: &envFileName,
 	})
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to load ENV file.")
+	}
 
 	ghTokenSource := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: env.GithubToken},
