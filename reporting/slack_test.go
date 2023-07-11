@@ -28,7 +28,7 @@ func (m *MockSlackClient) PostMessage(channelID string, options ...slack.MsgOpti
 func TestSendSlackMessagesSuccess(t *testing.T) {
 	mockClient := new(MockSlackClient)
 	config := config.Config{}
-	reporter := SlackReporter{Config: &config, client: mockClient}
+	reporter := SlackReporter{Config: config, client: mockClient}
 
 	mockClient.On("PostMessage", "channel", mock.Anything, mock.Anything).Return("", "", nil).Once()
 
@@ -42,7 +42,7 @@ func TestSendSlackMessagesSuccess(t *testing.T) {
 func TestSendSlackMessagesError(t *testing.T) {
 	mockClient := new(MockSlackClient)
 	config := config.Config{}
-	reporter := SlackReporter{Config: &config, client: mockClient}
+	reporter := SlackReporter{Config: config, client: mockClient}
 
 	mockClient.On("PostMessage", "channel", mock.Anything, mock.Anything).Return("", "", fmt.Errorf("Failed to send Slack message")).Once()
 
@@ -57,7 +57,7 @@ func TestSendSlackMessagesError(t *testing.T) {
 func TestSendSlackMessageWithNoClient(t *testing.T) {
 	config := config.Config{}
 	// Create a report instance with NO client
-	reporter := SlackReporter{Config: &config}
+	reporter := SlackReporter{Config: config}
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
@@ -65,12 +65,12 @@ func TestSendSlackMessageWithNoClient(t *testing.T) {
 }
 
 func TestIsSlackTokenMissing(t *testing.T) {
-	_, err := NewSlackReporter(&config.Config{}, "")
+	_, err := NewSlackReporter(config.Config{}, "")
 	assert.Error(t, err, "No Slack token was provided.")
 }
 
 func TestSlackTokenIsNotMissing(t *testing.T) {
-	_, err := NewSlackReporter(&config.Config{}, "slackToken")
+	_, err := NewSlackReporter(config.Config{}, "slackToken")
 	assert.NoError(t, err)
 }
 
@@ -189,7 +189,7 @@ func TestBuildSlackSummaryReport(t *testing.T) {
 func TestSendSlackSummaryReportSendsSingleMessage(t *testing.T) {
 	mockClient := new(MockSlackClient)
 	config := config.Config{Default_slack_channel: "channel"}
-	reporter := SlackReporter{Config: &config, client: mockClient}
+	reporter := SlackReporter{Config: config, client: mockClient}
 	report := NewVulnerabilityReport()
 
 	mockClient.On("PostMessage", "channel", mock.Anything, mock.Anything).Return("", "", nil).Once()
@@ -237,7 +237,7 @@ func TestBuildSlackTeamReport(t *testing.T) {
 			{Name: "TeamName", Slack_channel: "team-foo", Github_slug: "TeamName"},
 		},
 	}
-	reporter := SlackReporter{Config: &config}
+	reporter := SlackReporter{Config: config}
 
 	repo1Report := NewVulnerabilityReport()
 	repo1Report.VulnsByEcosystem["Pip"] = 10
@@ -333,7 +333,7 @@ func TestSendSlackTeamReportsSendsMessagePerTeam(t *testing.T) {
 		},
 	}
 	mockClient := new(MockSlackClient)
-	reporter := SlackReporter{Config: &config, client: mockClient}
+	reporter := SlackReporter{Config: config, client: mockClient}
 	repo1Report := NewVulnerabilityReport()
 	repo2Report := NewVulnerabilityReport()
 	teamReports := map[string]map[string]VulnerabilityReport{

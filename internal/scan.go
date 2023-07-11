@@ -22,7 +22,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	// Load the configuration file
 	configPath := getString(cmd.Flags(), "config")
 	viper := config.NewViper()
-	var userConfig *config.Config
+	var userConfig config.Config
 	err := viper.LoadConfig(config.ViperParams{
 		Output:     userConfig,
 		ConfigPath: &configPath,
@@ -32,7 +32,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 
 	// Load ENV file
-	var env *config.Env
+	var env config.Env
 	envFileName := ".env"
 	err = viper.LoadEnv(config.ViperParams{
 		Output:      env,
@@ -62,7 +62,7 @@ func Scan(cmd *cobra.Command, args []string) {
 			reporters = append(reporters, &slackReporter)
 		}
 	}
-	reporters = append(reporters, &reporting.ConsoleReporter{Config: *userConfig})
+	reporters = append(reporters, &reporting.ConsoleReporter{Config: userConfig})
 
 	reportTime := time.Now().UTC()
 	ghOrgName, allRepos := api.QueryGithubOrgVulnerabilities(ghOrgLogin, *ghClient)
