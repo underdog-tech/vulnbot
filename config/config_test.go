@@ -79,7 +79,7 @@ func TestLoadConfig(t *testing.T) {
 	viper := NewViper()
 	var config Config
 	viper.LoadConfig(ViperParams{
-		Output:     config,
+		Output:     &config,
 		ConfigPath: &testDataPath,
 	})
 
