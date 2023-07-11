@@ -1,0 +1,5 @@
+default_slack_channel = "testing_slack_channel"
+
+[[ecosystem]]
+label = "Go"
+slack_emoji = ":golang:"

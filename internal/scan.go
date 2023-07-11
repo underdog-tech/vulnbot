@@ -20,10 +20,22 @@ func Scan(cmd *cobra.Command, args []string) {
 	log := logger.Get()
 
 	// Load the configuration file
-	configFilePath := getString(cmd.Flags(), "config")
-	userConfig := config.LoadConfig(&configFilePath)
+	configPath := getString(cmd.Flags(), "config")
+	viper := config.NewViper()
+	var userConfig *config.Config
+	viper.LoadConfig(config.ViperParams{
+		Output:     userConfig,
+		ConfigPath: &configPath,
+	})
 
-	env := config.LoadEnv()
+	// Load ENV file
+	var env *config.Env
+	envFileName := ".env"
+	viper.LoadEnv(config.ViperParams{
+		Output:      env,
+		EnvFileName: &envFileName,
+	})
+
 	ghTokenSource := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: env.GithubToken},
 	)
@@ -44,7 +56,7 @@ func Scan(cmd *cobra.Command, args []string) {
 			reporters = append(reporters, &slackReporter)
 		}
 	}
-	reporters = append(reporters, &reporting.ConsoleReporter{Config: userConfig})
+	reporters = append(reporters, &reporting.ConsoleReporter{Config: *userConfig})
 
 	reportTime := time.Now().UTC()
 	ghOrgName, allRepos := api.QueryGithubOrgVulnerabilities(ghOrgLogin, *ghClient)

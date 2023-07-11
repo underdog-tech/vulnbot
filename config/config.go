@@ -2,16 +2,13 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/underdog-tech/vulnbot/logger"
 
-	v "github.com/spf13/viper"
+	viperClient "github.com/spf13/viper"
 )
-
-var viper *v.Viper
 
 type SeverityConfig struct {
 	Label       string
@@ -29,7 +26,7 @@ type TeamConfig struct {
 	Slack_channel string
 }
 
-type TomlConfig struct {
+type Config struct {
 	Default_slack_channel string
 	Severity              []SeverityConfig
 	Ecosystem             []EcosystemConfig
@@ -42,67 +39,69 @@ type Env struct {
 	GithubToken    string `mapstructure:"GITHUB_TOKEN"`
 }
 
-func getViper() *v.Viper {
-	if viper == nil {
-		viper = v.New()
-	}
-	return viper
+type Viper struct {
+	*viperClient.Viper
 }
 
-func LoadConfig(configFilePath *string) TomlConfig {
-	var config TomlConfig
+type ViperParams struct {
+	ConfigPath  *string
+	Output      interface{}
+	EnvFileName *string
+}
+
+func NewViper() Viper {
+	viper := viperClient.New()
+	return Viper{viper}
+}
+
+func (v *Viper) LoadConfig(params ViperParams) error {
 	log := logger.Get()
 
-	v := getViper()
-
-	filename := filepath.Base(*configFilePath)
-	extension := filepath.Ext(*configFilePath)
-
-	currentDir, err := os.Getwd()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get current working directory.")
-	}
+	filename := filepath.Base(*params.ConfigPath)
+	extension := filepath.Ext(*params.ConfigPath)
+	configDir := filepath.Dir(*params.ConfigPath)
 
 	v.SetConfigName(filename)
-	v.AddConfigPath(currentDir)
+	v.AddConfigPath(configDir)
 	v.SetConfigType(strings.TrimLeft(extension, "."))
-
-	err = v.ReadInConfig()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to read config.")
-	}
-
-	err = v.Unmarshal(&config)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
-	}
-
-	log.Debug().Any("config", config).Msg("Config loaded.")
-	return config
-}
-
-func LoadEnv() Env {
-	var env Env
-	log := logger.Get()
-
-	v := getViper()
-
-	// Read in environment variables that match
-	v.SetConfigFile(".env")
-	v.AutomaticEnv()
 
 	err := v.ReadInConfig()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to read config.")
+		return err
 	}
 
-	err = v.Unmarshal(&env)
+	err = v.Unmarshal(&params.Output)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
+		return err
 	}
 
-	log.Debug().Any("env", env).Msg("Env loaded.")
-	return env
+	log.Debug().Any("config", params.Output).Msg("Config loaded.")
+	return nil
+}
+
+func (v *Viper) LoadEnv(params ViperParams) error {
+	log := logger.Get()
+
+	// Read in environment variables that match
+	v.SetConfigFile(*params.EnvFileName)
+	v.AutomaticEnv()
+
+	err := v.ReadInConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to read ENV file.")
+		return err
+	}
+
+	err = v.Unmarshal(&params.Output)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to unmarshal ENV.")
+		return err
+	}
+
+	log.Debug().Any("env", params.Output).Msg("ENV loaded.")
+	return nil
 }
 
 func GetIconForSeverity(severity string, severities []SeverityConfig) (string, error) {

@@ -16,7 +16,7 @@ import (
 
 type SlackReporter struct {
 	slackToken string
-	Config     config.TomlConfig
+	Config     *config.Config
 	client     SlackClientInterface
 }
 
@@ -239,7 +239,7 @@ func (s *SlackReporter) sendSlackMessage(channel string, message slack.MsgOption
 	}
 }
 
-func NewSlackReporter(config config.TomlConfig, slackToken string) (SlackReporter, error) {
+func NewSlackReporter(config *config.Config, slackToken string) (SlackReporter, error) {
 	if slackToken == "" {
 		return SlackReporter{}, fmt.Errorf("No Slack token was provided.")
 	}
