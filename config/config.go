@@ -7,7 +7,7 @@ import (
 
 	"github.com/underdog-tech/vulnbot/logger"
 
-	viperClient "github.com/spf13/viper"
+	"github.com/spf13/viper"
 )
 
 type SeverityConfig struct {
@@ -39,9 +39,7 @@ type Env struct {
 	GithubToken    string `mapstructure:"GITHUB_TOKEN"`
 }
 
-type Viper struct {
-	*viperClient.Viper
-}
+var viperClient *viper.Viper
 
 type ViperParams struct {
 	ConfigPath  *string
@@ -49,13 +47,17 @@ type ViperParams struct {
 	EnvFileName *string
 }
 
-func NewViper() Viper {
-	viper := viperClient.New()
-	return Viper{viper}
+func getViper() *viper.Viper {
+	if viperClient == nil {
+		viperClient = viper.New()
+	}
+	return viperClient
 }
 
-func (v *Viper) LoadConfig(params ViperParams) error {
+func LoadConfig(params ViperParams) error {
 	log := logger.Get()
+
+	v := getViper()
 
 	filename := filepath.Base(*params.ConfigPath)
 	extension := filepath.Ext(*params.ConfigPath)
@@ -81,8 +83,10 @@ func (v *Viper) LoadConfig(params ViperParams) error {
 	return nil
 }
 
-func (v *Viper) LoadEnv(params ViperParams) error {
+func LoadEnv(params ViperParams) error {
 	log := logger.Get()
+
+	v := getViper()
 
 	// Read in environment variables that match
 	v.SetConfigFile(*params.EnvFileName)

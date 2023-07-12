@@ -76,9 +76,8 @@ func TestLoadConfig(t *testing.T) {
 	}
 	testDataPath := filepath.Join(currentDir, "/testdata/test_config.toml")
 
-	viper := NewViper()
 	var config Config
-	viper.LoadConfig(ViperParams{
+	LoadConfig(ViperParams{
 		Output:     &config,
 		ConfigPath: &testDataPath,
 	})
@@ -95,9 +94,8 @@ func TestLoadEnv(t *testing.T) {
 	}
 	testDataPath := filepath.Join(currentDir, "/testdata/config.env")
 
-	viper := NewViper()
 	var env Env
-	viper.LoadEnv(ViperParams{
+	LoadEnv(ViperParams{
 		EnvFileName: &testDataPath,
 		Output: &env,
 	})
