@@ -90,6 +90,7 @@ func LoadEnv(params ViperParams) error {
 
 	// Read in environment variables that match
 	v.SetConfigFile(*params.EnvFileName)
+	v.SetConfigType("env")
 	v.AutomaticEnv()
 
 	err := v.ReadInConfig()
