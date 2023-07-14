@@ -21,9 +21,9 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	// Load the configuration file
 	configPath := getString(cmd.Flags(), "config")
-	var userConfig config.Config
+	userConfig := config.Config{}
 	err := config.LoadConfig(config.ViperParams{
-		Output:     userConfig,
+		Output:     &userConfig,
 		ConfigPath: &configPath,
 	})
 	if err != nil {
@@ -31,10 +31,10 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 
 	// Load ENV file
-	var env config.Env
+	env := config.Env{}
 	envFileName := ".env"
 	err = config.LoadEnv(config.ViperParams{
-		Output:      env,
+		Output:      &env,
 		EnvFileName: &envFileName,
 	})
 	if err != nil {
