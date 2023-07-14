@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"path/filepath"
+
 	"github.com/rs/zerolog"
+	"github.com/underdog-tech/vulnbot/internal"
 	"github.com/underdog-tech/vulnbot/logger"
 
 	"github.com/spf13/cobra"
@@ -44,7 +47,9 @@ func Execute() {
 func init() {
 	persistent := rootCmd.PersistentFlags()
 	persistent.BoolP("disable-slack", "d", false, "Disable Slack alerts.")
-	persistent.StringP("config", "c", "config.toml", "Config file path.")
+
+	projectRootDir := internal.GetProjectRootDir()
+	persistent.StringP("config", "c", filepath.Join(projectRootDir, "config.toml"), "Config file path.")
 
 	persistent.BoolP("quiet", "q", false, "Suppress all console output. (Mutually exclusive with 'verbose'.)")
 	persistent.CountP("verbose", "v", "More verbose output. Specifying multiple times increases verbosity. (Mutually exclusive with 'quiet'.)")

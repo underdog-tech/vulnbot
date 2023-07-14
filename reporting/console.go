@@ -33,7 +33,7 @@ func getConsoleEcosystemIcons() map[string]string {
 }
 
 type ConsoleReporter struct {
-	Config config.TomlConfig
+	Config config.Config
 }
 
 // SendSummaryReport generates a brief report summarizing all the discovered

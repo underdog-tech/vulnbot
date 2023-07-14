@@ -1,6 +1,9 @@
 package config
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,4 +56,50 @@ func TestGetUnconfiguredTeamConfigBySlug(t *testing.T) {
 	team, err := GetTeamConfigBySlug("unknown-team", TeamConfigs)
 	assert.Empty(t, team)
 	assert.Error(t, err)
+}
+
+func getCurrentDir() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Failed to get current working directory:", err)
+		return "", err
+	}
+
+	return cwd, nil
+}
+
+func TestLoadConfig(t *testing.T) {
+	expectedSlackChannel := "testing_slack_channel"
+	currentDir, err := getCurrentDir()
+	if err != nil {
+		assert.Error(t, err)
+	}
+	testDataPath := filepath.Join(currentDir, "/testdata/test_config.toml")
+
+	var config Config
+	LoadConfig(ViperParams{
+		Output:     &config,
+		ConfigPath: &testDataPath,
+	})
+
+	assert.IsType(t, Config{}, config)
+	assert.Equal(t, expectedSlackChannel, config.Default_slack_channel)
+}
+
+func TestLoadEnv(t *testing.T) {
+	expectedSlackAuthToken := "testing"
+	currentDir, err := getCurrentDir()
+	if err != nil {
+		assert.Error(t, err)
+	}
+	testDataPath := filepath.Join(currentDir, "/testdata/config.env")
+
+	var env Env
+	LoadEnv(ViperParams{
+		EnvFileName: &testDataPath,
+		Output: &env,
+	})
+
+	assert.IsType(t, Env{}, env)
+	assert.Equal(t, expectedSlackAuthToken, env.SlackAuthToken)
 }

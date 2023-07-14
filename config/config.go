@@ -2,10 +2,12 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/underdog-tech/vulnbot/logger"
 
-	"github.com/BurntSushi/toml"
+	"github.com/spf13/viper"
 )
 
 type SeverityConfig struct {
@@ -24,23 +26,86 @@ type TeamConfig struct {
 	Slack_channel string
 }
 
-type TomlConfig struct {
+type Config struct {
 	Default_slack_channel string
 	Severity              []SeverityConfig
 	Ecosystem             []EcosystemConfig
 	Team                  []TeamConfig
 }
 
-func LoadConfig(configFilePath *string) TomlConfig {
-	var config TomlConfig
+type Env struct {
+	GithubOrg      string `mapstructure:"GITHUB_ORG"`
+	SlackAuthToken string `mapstructure:"SLACK_AUTH_TOKEN"`
+	GithubToken    string `mapstructure:"GITHUB_TOKEN"`
+}
+
+var viperClient *viper.Viper
+
+type ViperParams struct {
+	ConfigPath  *string
+	Output      interface{}
+	EnvFileName *string
+}
+
+func getViper() *viper.Viper {
+	if viperClient == nil {
+		viperClient = viper.New()
+	}
+	return viperClient
+}
+
+func LoadConfig(params ViperParams) error {
 	log := logger.Get()
 
-	_, err := toml.DecodeFile(*configFilePath, &config)
+	v := getViper()
+
+	filename := filepath.Base(*params.ConfigPath)
+	extension := filepath.Ext(*params.ConfigPath)
+	configDir := filepath.Dir(*params.ConfigPath)
+
+	v.SetConfigName(filename)
+	v.AddConfigPath(configDir)
+	v.SetConfigType(strings.TrimLeft(extension, "."))
+
+	err := v.ReadInConfig()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error loading config file.")
+		log.Fatal().Err(err).Msg("Unable to read config.")
+		return err
 	}
-	log.Debug().Any("config", config).Msg("Config loaded.")
-	return config
+
+	err = v.Unmarshal(&params.Output)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
+		return err
+	}
+
+	log.Debug().Any("config", params.Output).Msg("Config loaded.")
+	return nil
+}
+
+func LoadEnv(params ViperParams) error {
+	log := logger.Get()
+
+	v := getViper()
+
+	// Read in environment variables that match
+	v.SetConfigFile(*params.EnvFileName)
+	v.AutomaticEnv()
+
+	err := v.ReadInConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to read ENV file.")
+		return err
+	}
+
+	err = v.Unmarshal(&params.Output)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to unmarshal ENV.")
+		return err
+	}
+
+	log.Debug().Any("env", params.Output).Msg("ENV loaded.")
+	return nil
 }
 
 func GetIconForSeverity(severity string, severities []SeverityConfig) (string, error) {

@@ -17,7 +17,7 @@ func TestSendConsoleSummaryReport(t *testing.T) {
 	reader, writer, _ := os.Pipe()
 	os.Stdout = writer
 
-	reporter := ConsoleReporter{Config: config.TomlConfig{}}
+	reporter := ConsoleReporter{Config: config.Config{}}
 	report := NewVulnerabilityReport()
 	report.AffectedRepos = 2
 	report.TotalCount = 42

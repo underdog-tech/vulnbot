@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/underdog-tech/vulnbot/logger"
 	"github.com/underdog-tech/vulnbot/reporting"
 
-	"github.com/joho/godotenv"
 	"github.com/shurcooL/githubv4"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
@@ -22,20 +20,32 @@ func Scan(cmd *cobra.Command, args []string) {
 	log := logger.Get()
 
 	// Load the configuration file
-	configFilePath := getString(cmd.Flags(), "config")
-	userConfig := config.LoadConfig(&configFilePath)
-
-	// Gather credentials from the environment
-	err := godotenv.Load(".env")
+	configPath := getString(cmd.Flags(), "config")
+	var userConfig config.Config
+	err := config.LoadConfig(config.ViperParams{
+		Output:     userConfig,
+		ConfigPath: &configPath,
+	})
 	if err != nil {
-		log.Info().Err(err).Msg(".env file not loaded.")
+		log.Error().Err(err).Msg("Failed to load configuration.")
+	}
+
+	// Load ENV file
+	var env config.Env
+	envFileName := ".env"
+	err = config.LoadEnv(config.ViperParams{
+		Output:      env,
+		EnvFileName: &envFileName,
+	})
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to load ENV file.")
 	}
 
 	ghTokenSource := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+		&oauth2.Token{AccessToken: env.GithubToken},
 	)
-	ghOrgLogin := os.Getenv("GITHUB_ORG")
-	slackToken := os.Getenv("SLACK_AUTH_TOKEN")
+	ghOrgLogin := env.GithubOrg
+	slackToken := env.SlackAuthToken
 
 	httpClient := oauth2.NewClient(context.Background(), ghTokenSource)
 	ghClient := githubv4.NewClient(httpClient)
