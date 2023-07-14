@@ -30,6 +30,8 @@ Vulnbot empowers developers and security teams to efficiently manage and respond
 			}
 			logLevel := logger.DEFAULT_LOG_LEVEL - zerolog.Level(verbosity)
 			logger.SetLogLevel(logLevel)
+		} else {
+			logger.SetLogLevel(logger.DEFAULT_LOG_LEVEL)
 		}
 	},
 }
