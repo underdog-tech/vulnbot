@@ -196,7 +196,7 @@ func TestSendSlackSummaryReportSendsSingleMessage(t *testing.T) {
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.SendSummaryReport("Foo", 1, report, TEST_REPORT_TIME, wg)
+	_ = reporter.SendSummaryReport("Foo", 1, report, TEST_REPORT_TIME, wg)
 	wg.Wait()
 
 	mockClient.AssertExpectations(t)
@@ -266,9 +266,9 @@ func TestBuildSlackTeamReport(t *testing.T) {
 	repo1Data := reporter.buildTeamRepositoryReport("repo1", repo1Report)
 	repo2Data := reporter.buildTeamRepositoryReport("repo2", repo2Report)
 	repo1ExpectedBytes, _ := json.Marshal(repo1Data)
-	json.Unmarshal(repo1ExpectedBytes, &repo1Expected)
+	_ = json.Unmarshal(repo1ExpectedBytes, &repo1Expected)
 	repo2ExpectedBytes, _ := json.Marshal(repo2Data)
-	json.Unmarshal(repo2ExpectedBytes, &repo2Expected)
+	_ = json.Unmarshal(repo2ExpectedBytes, &repo2Expected)
 
 	expectedData := map[string]interface{}{
 		"replace_original": false,
@@ -350,7 +350,7 @@ func TestSendSlackTeamReportsSendsMessagePerTeam(t *testing.T) {
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.SendTeamReports(teamReports, TEST_REPORT_TIME, wg)
+	_ = reporter.SendTeamReports(teamReports, TEST_REPORT_TIME, wg)
 	wg.Wait()
 
 	mockClient.AssertExpectations(t)

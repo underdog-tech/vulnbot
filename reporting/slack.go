@@ -15,9 +15,8 @@ import (
 )
 
 type SlackReporter struct {
-	slackToken string
-	Config     config.Config
-	client     SlackClientInterface
+	Config config.Config
+	client SlackClientInterface
 }
 
 type SlackReport struct {
@@ -65,7 +64,7 @@ func (s *SlackReporter) buildSummaryReport(
 
 	severities := getSeverityReportOrder()
 	for _, severity := range severities {
-		vulnCount, _ := report.VulnsBySeverity[severity]
+		vulnCount := report.VulnsBySeverity[severity]
 		icon, err := config.GetIconForSeverity(severity, s.Config.Severity)
 		if err != nil {
 			icon = DEFAULT_SLACK_ICON
@@ -86,7 +85,7 @@ func (s *SlackReporter) buildSummaryReport(
 	ecosystems := maps.Keys(report.VulnsByEcosystem)
 	sort.Strings(ecosystems)
 	for _, ecosystem := range ecosystems {
-		vulnCount, _ := report.VulnsByEcosystem[ecosystem]
+		vulnCount := report.VulnsByEcosystem[ecosystem]
 		icon, err := config.GetIconForEcosystem(ecosystem, s.Config.Ecosystem)
 		if err != nil {
 			icon = DEFAULT_SLACK_ICON

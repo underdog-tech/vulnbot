@@ -77,7 +77,7 @@ func TestLoadConfig(t *testing.T) {
 	testDataPath := filepath.Join(currentDir, "/testdata/test_config.toml")
 
 	var config Config
-	LoadConfig(ViperParams{
+	_ = LoadConfig(ViperParams{
 		Output:     &config,
 		ConfigPath: &testDataPath,
 	})
@@ -95,9 +95,9 @@ func TestLoadEnv(t *testing.T) {
 	testDataPath := filepath.Join(currentDir, "/testdata/config.env")
 
 	var env Env
-	LoadEnv(ViperParams{
+	_ = LoadEnv(ViperParams{
 		EnvFileName: &testDataPath,
-		Output: &env,
+		Output:      &env,
 	})
 
 	assert.IsType(t, Env{}, env)

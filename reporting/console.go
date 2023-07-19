@@ -65,7 +65,7 @@ func (c *ConsoleReporter) SendSummaryReport(
 	for _, ecosystem := range ecosystems {
 		summaryReport += fmt.Sprintf("%s %s: %d\n", ecosystemIcons[ecosystem], ecosystem, report.VulnsByEcosystem[ecosystem])
 	}
-	fmt.Printf(summaryReport)
+	fmt.Print(summaryReport)
 	return nil
 }
 

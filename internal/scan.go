@@ -78,14 +78,22 @@ func Scan(cmd *cobra.Command, args []string) {
 	wg := new(sync.WaitGroup)
 	for _, reporter := range reporters {
 		wg.Add(2)
-		go reporter.SendSummaryReport(
-			summaryHeader,
-			len(allRepos),
-			vulnSummary,
-			reportTime,
-			wg,
-		)
-		go reporter.SendTeamReports(teamReports, reportTime, wg)
+		go func(currentReporter reporting.Reporter) {
+			err := currentReporter.SendSummaryReport(
+				summaryHeader,
+				len(allRepos),
+				vulnSummary,
+				reportTime,
+				wg,
+			)
+			if err != nil {
+				log.Error().Err(err).Type("currentReporter", currentReporter).Msg("Error sending summary report.")
+			}
+			err = currentReporter.SendTeamReports(teamReports, reportTime, wg)
+			if err != nil {
+				log.Error().Err(err).Type("currentReporters", currentReporter).Msg("Error sending team reports.")
+			}
+		}(reporter)
 	}
 	wg.Wait()
 	log.Info().Msg("Done!")

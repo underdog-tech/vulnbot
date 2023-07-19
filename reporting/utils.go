@@ -1,22 +1,24 @@
 package reporting
 
 import (
-	"strings"
-
 	"github.com/underdog-tech/vulnbot/api"
 	"github.com/underdog-tech/vulnbot/logger"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func TallyVulnsBySeverity(vulns []api.VulnerabilityAlert, vulnCounts map[string]int) {
+	caser := cases.Title(language.English)
 	for _, vuln := range vulns {
-		severity := strings.Title(strings.ToLower(vuln.SecurityVulnerability.Severity))
+		severity := caser.String(vuln.SecurityVulnerability.Severity)
 		vulnCounts[severity] += 1
 	}
 }
 
 func TallyVulnsByEcosystem(vulns []api.VulnerabilityAlert, vulnCounts map[string]int) {
+	caser := cases.Title(language.English)
 	for _, vuln := range vulns {
-		ecosystem := strings.Title(strings.ToLower(vuln.SecurityVulnerability.Package.Ecosystem))
+		ecosystem := caser.String(vuln.SecurityVulnerability.Package.Ecosystem)
 		_, exists := vulnCounts[ecosystem]
 		if !exists {
 			vulnCounts[ecosystem] = 0
@@ -81,7 +83,7 @@ func CollateTeamReports(vulnsByTeam map[string][]api.VulnerabilityRepository) (t
 		}
 		teamReports[team][SUMMARY_KEY] = NewVulnerabilityReport()
 		for _, repo := range repos {
-			summaryReport, _ := teamReports[team][SUMMARY_KEY]
+			summaryReport := teamReports[team][SUMMARY_KEY]
 			summaryReport.AffectedRepos += 1
 			repoReport := NewVulnerabilityReport()
 			TallyVulnsByEcosystem(repo.VulnerabilityAlerts.Nodes, repoReport.VulnsByEcosystem)
