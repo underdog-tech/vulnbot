@@ -1,6 +1,7 @@
 package querying
 
 import (
+	"regexp"
 	"strings"
 	"sync"
 
@@ -34,7 +35,16 @@ func NewProjectCollection() *ProjectCollection {
 }
 
 func normalizeProjectName(name string) string {
-	return strings.Replace(strings.ToLower(name), "-", "_", -1)
+	unacceptableChars := regexp.MustCompile(`[^\p{L}\p{N} \-\_]+`)
+	replacer := strings.NewReplacer(
+		" ", "_",
+		"-", "_",
+	)
+	return replacer.Replace(
+		unacceptableChars.ReplaceAllString(
+			strings.ToLower(name), "",
+		),
+	)
 }
 
 func (c *ProjectCollection) AddProject(name string) *Project {
