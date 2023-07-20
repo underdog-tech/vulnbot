@@ -2,7 +2,7 @@ package reporting
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"sync"
 	"testing"
@@ -60,9 +60,9 @@ Affected repositories: 2
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	reporter.SendSummaryReport("OrgName Dependabot Report", 13, report, TEST_REPORT_TIME, wg)
+	_ = reporter.SendSummaryReport("OrgName Dependabot Report", 13, report, TEST_REPORT_TIME, wg)
 	writer.Close()
-	written, _ := ioutil.ReadAll(reader)
+	written, _ := io.ReadAll(reader)
 	os.Stdout = origStdout
 	assert.Equal(t, expected, string(written))
 }

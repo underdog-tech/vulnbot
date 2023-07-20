@@ -22,7 +22,7 @@ Vulnbot empowers developers and security teams to efficiently manage and respond
 		quiet, _ := cmd.Flags().GetBool("quiet")
 		verbosity, _ := cmd.Flags().GetCount("verbose")
 
-		if quiet == true {
+		if quiet {
 			logger.SetLogLevel(zerolog.Disabled)
 		} else if verbosity > 0 {
 			if verbosity > 3 {
