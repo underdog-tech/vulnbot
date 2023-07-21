@@ -47,7 +47,7 @@ func normalizeProjectName(name string) string {
 	)
 }
 
-func (c *ProjectCollection) AddProject(name string) *Project {
+func (c *ProjectCollection) GetProject(name string) *Project {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	name = normalizeProjectName(name)
@@ -62,7 +62,7 @@ func (c *ProjectCollection) AddProject(name string) *Project {
 	return newProj
 }
 
-func (p *Project) AddFinding(identifiers map[FindingIdentifierType]string) *Finding {
+func (p *Project) GetFinding(identifiers map[FindingIdentifierType]string) *Finding {
 	var result *Finding
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -79,7 +79,10 @@ func (p *Project) AddFinding(identifiers map[FindingIdentifierType]string) *Find
 		result = &Finding{
 			Identifiers: identifiers,
 		}
+		p.Findings = append(p.Findings, result)
 	} else {
+		result.mu.Lock()
+		defer result.mu.Unlock()
 		maps.Copy(result.Identifiers, identifiers)
 	}
 	return result
