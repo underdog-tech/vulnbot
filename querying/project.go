@@ -62,7 +62,7 @@ func (c *ProjectCollection) GetProject(name string) *Project {
 	return newProj
 }
 
-func (p *Project) GetFinding(identifiers map[FindingIdentifierType]string) *Finding {
+func (p *Project) GetFinding(identifiers FindingIdentifierMap) *Finding {
 	var result *Finding
 	p.mu.Lock()
 	defer p.mu.Unlock()

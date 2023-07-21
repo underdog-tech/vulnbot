@@ -3,6 +3,7 @@ package querying
 import "sync"
 
 type FindingIdentifierType uint8
+type FindingIdentifierMap map[FindingIdentifierType]string
 
 const (
 	FindingIdentifierCVE FindingIdentifierType = iota
@@ -10,7 +11,7 @@ const (
 )
 
 type Finding struct {
-	Identifiers map[FindingIdentifierType]string
+	Identifiers FindingIdentifierMap
 	Ecosystem   FindingEcosystemType
 	Severity    FindingSeverityType
 	Description string
