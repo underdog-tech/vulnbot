@@ -4,17 +4,17 @@ type FindingEcosystemType string
 
 const (
 	FindingEcosystemApt    FindingEcosystemType = "apt"
-	FindingEcosystemCSharp                      = "csharp"
-	FindingEcosystemDart                        = "dart"
-	FindingEcosystemErlang                      = "erlang"
-	FindingEcosystemGHA                         = "gha" // GitHub Actions
-	FindingEcosystemGo                          = "go"
-	FindingEcosystemJava                        = "java"
-	FindingEcosystemJS                          = "js" // Includes TypeScript
-	FindingEcosystemPHP                         = "php"
-	FindingEcosystemPython                      = "python"
-	FindingEcosystemRPM                         = "rpm"
-	FindingEcosystemRuby                        = "ruby"
-	FindingEcosystemRust                        = "rust"
-	FindingEcosystemSwift                       = "swift"
+	FindingEcosystemCSharp FindingEcosystemType = "csharp"
+	FindingEcosystemDart   FindingEcosystemType = "dart"
+	FindingEcosystemErlang FindingEcosystemType = "erlang"
+	FindingEcosystemGHA    FindingEcosystemType = "gha" // GitHub Actions
+	FindingEcosystemGo     FindingEcosystemType = "go"
+	FindingEcosystemJava   FindingEcosystemType = "java"
+	FindingEcosystemJS     FindingEcosystemType = "js" // Includes TypeScript
+	FindingEcosystemPHP    FindingEcosystemType = "php"
+	FindingEcosystemPython FindingEcosystemType = "python"
+	FindingEcosystemRPM    FindingEcosystemType = "rpm"
+	FindingEcosystemRuby   FindingEcosystemType = "ruby"
+	FindingEcosystemRust   FindingEcosystemType = "rust"
+	FindingEcosystemSwift  FindingEcosystemType = "swift"
 )
