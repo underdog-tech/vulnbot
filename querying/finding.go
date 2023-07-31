@@ -2,12 +2,12 @@ package querying
 
 import "sync"
 
-type FindingIdentifierType uint8
+type FindingIdentifierType string
 type FindingIdentifierMap map[FindingIdentifierType]string
 
 const (
-	FindingIdentifierCVE FindingIdentifierType = iota
-	FindingIdentifierGHSA
+	FindingIdentifierCVE  FindingIdentifierType = "cve"
+	FindingIdentifierGHSA                       = "ghsa"
 )
 
 type Finding struct {
