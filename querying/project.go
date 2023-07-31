@@ -20,6 +20,7 @@ type Project struct {
 	mu       sync.Mutex
 }
 
+// NewProject returns a new, empty project with no links or findings.
 func NewProject(name string) *Project {
 	return &Project{
 		Name:     name,
@@ -28,12 +29,20 @@ func NewProject(name string) *Project {
 	}
 }
 
+// NewProjectCollection returns a new, empty ProjectCollection object.
 func NewProjectCollection() *ProjectCollection {
 	return &ProjectCollection{
 		Projects: []*Project{},
 	}
 }
 
+// normalizeProjectName converts a project name to a standard normalized baseline.
+// This means stripping out all characters which are not: Letters, numbers,
+// spaces, hyphens, or underscores. This is done via a regex, which includes the
+// unicode character classes (\p) of `{L}` to represent all letters, and `{N}`
+// to represent all numbers.
+// Once all undesirable characters have been stripped, both spaces and hyphens
+// are converted to underscores, and the resulting string is lower-cased.
 func normalizeProjectName(name string) string {
 	unacceptableChars := regexp.MustCompile(`[^\p{L}\p{N} \-\_]+`)
 	replacer := strings.NewReplacer(
@@ -47,6 +56,8 @@ func normalizeProjectName(name string) string {
 	)
 }
 
+// GetProject returns the project with the specified name from the collection.
+// If such a project does not yet exist, it is created and added to the collection.
 func (c *ProjectCollection) GetProject(name string) *Project {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -62,6 +73,8 @@ func (c *ProjectCollection) GetProject(name string) *Project {
 	return newProj
 }
 
+// GetFinding returns the specified finding from the project, based on the identifiers.
+// If such a finding does not yet exist, it is created and added to the project.
 func (p *Project) GetFinding(identifiers FindingIdentifierMap) *Finding {
 	var result *Finding
 	p.mu.Lock()
