@@ -1,20 +1,20 @@
 package querying
 
-type FindingEcosystemType uint8
+type FindingEcosystemType string
 
 const (
-	FindingEcosystemApt FindingEcosystemType = iota
-	FindingEcosystemCSharp
-	FindingEcosystemDart
-	FindingEcosystemErlang
-	FindingEcosystemGHA // GitHub Actions
-	FindingEcosystemGo
-	FindingEcosystemJava
-	FindingEcosystemJS
-	FindingEcosystemPHP
-	FindingEcosystemPython
-	FindingEcosystemRPM
-	FindingEcosystemRuby
-	FindingEcosystemRust
-	FindingEcosystemSwift
+	FindingEcosystemApt    FindingEcosystemType = "apt"
+	FindingEcosystemCSharp                      = "csharp"
+	FindingEcosystemDart                        = "dart"
+	FindingEcosystemErlang                      = "erlang"
+	FindingEcosystemGHA                         = "gha" // GitHub Actions
+	FindingEcosystemGo                          = "go"
+	FindingEcosystemJava                        = "java"
+	FindingEcosystemJS                          = "js" // Includes TypeScript
+	FindingEcosystemPHP                         = "php"
+	FindingEcosystemPython                      = "python"
+	FindingEcosystemRPM                         = "rpm"
+	FindingEcosystemRuby                        = "ruby"
+	FindingEcosystemRust                        = "rust"
+	FindingEcosystemSwift                       = "swift"
 )
