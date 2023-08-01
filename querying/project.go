@@ -36,13 +36,21 @@ func NewProjectCollection() *ProjectCollection {
 	}
 }
 
-// normalizeProjectName converts a project name to a standard normalized baseline.
+// normalizeProjectName converts a project name to a standard normalized format.
 // This means stripping out all characters which are not: Letters, numbers,
 // spaces, hyphens, or underscores. This is done via a regex, which includes the
 // unicode character classes (\p) of `{L}` to represent all letters, and `{N}`
 // to represent all numbers.
 // Once all undesirable characters have been stripped, both spaces and hyphens
 // are converted to underscores, and the resulting string is lower-cased.
+//
+// For example:
+//
+//	$$$ This Project is MONEY! $$$
+//
+// will be normalized to
+//
+//	this_project_is_money
 func normalizeProjectName(name string) string {
 	unacceptableChars := regexp.MustCompile(`[^\p{L}\p{N} \-\_]+`)
 	replacer := strings.NewReplacer(
@@ -50,8 +58,10 @@ func normalizeProjectName(name string) string {
 		"-", "_",
 	)
 	return replacer.Replace(
-		unacceptableChars.ReplaceAllString(
-			strings.ToLower(name), "",
+		strings.TrimSpace(
+			unacceptableChars.ReplaceAllString(
+				strings.ToLower(name), "",
+			),
 		),
 	)
 }
