@@ -28,7 +28,7 @@ func TestCollectFindingsSingleProjectSingleFinding(t *testing.T) {
 			data, _ = os.ReadFile("testdata/single_project_single_finding_owners.json")
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(data))
+		_, _ = w.Write([]byte(data))
 	}))
 	defer server.Close()
 
@@ -43,7 +43,10 @@ func TestCollectFindingsSingleProjectSingleFinding(t *testing.T) {
 	projects := querying.NewProjectCollection()
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	ds.CollectFindings(projects, wg)
+	err := ds.CollectFindings(projects, wg)
+	if err != nil {
+		t.Error(err)
+	}
 	expected := querying.ProjectCollection{
 		Projects: []*querying.Project{
 			{
