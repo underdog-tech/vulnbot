@@ -6,8 +6,8 @@ type FindingIdentifierType string
 type FindingIdentifierMap map[FindingIdentifierType]string
 
 const (
-	FindingIdentifierCVE  FindingIdentifierType = "cve"
-	FindingIdentifierGHSA FindingIdentifierType = "ghsa"
+	FindingIdentifierCVE  FindingIdentifierType = "CVE"
+	FindingIdentifierGHSA FindingIdentifierType = "GHSA"
 )
 
 type Finding struct {

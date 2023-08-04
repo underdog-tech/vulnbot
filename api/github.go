@@ -141,6 +141,6 @@ func QueryGithubOrgRepositoryOwners(ghOrgLogin string, ghClient githubv4.Client)
 		}
 		queryVars["teamsCursor"] = githubv4.NewString(ownerQuery.Organization.Teams.PageInfo.EndCursor)
 	}
-	log.Debug().Any("repos", allRepos).Msg("Repositories loaded.")
+	log.Trace().Any("repos", allRepos).Msg("Repositories loaded.")
 	return allRepos
 }
