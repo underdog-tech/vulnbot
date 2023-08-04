@@ -16,7 +16,7 @@ type githubClient interface {
 
 // GithubDataSource is used to pull Dependabot alerts for an individual organization.
 type GithubDataSource struct {
-	ghClient githubClient
+	GhClient githubClient
 	orgName  string
 	conf     config.Config
 	ctx      context.Context
@@ -30,7 +30,7 @@ func NewGithubDataSource(conf config.Config, env config.Env) GithubDataSource {
 	ghClient := githubv4.NewClient(httpClient)
 
 	return GithubDataSource{
-		ghClient: ghClient,
+		GhClient: ghClient,
 		orgName:  env.GithubOrg,
 		conf:     conf,
 		ctx:      context.Background(),
@@ -109,7 +109,7 @@ func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *syn
 
 	for {
 		log.Info().Any("repoCursor", queryVars["repoCursor"]).Msg("Querying GitHub API for repositories with vulnerabilities.")
-		err := gh.ghClient.Query(gh.ctx, &alertQuery, queryVars)
+		err := gh.GhClient.Query(gh.ctx, &alertQuery, queryVars)
 		if err != nil {
 			log.Error().Err(err).Msg("GitHub repository query failed!")
 			return err
@@ -204,7 +204,7 @@ func (gh *GithubDataSource) gatherRepoOwners(projects *ProjectCollection) {
 
 	for {
 		log.Info().Msg("Querying GitHub API for repository ownership information.")
-		err := gh.ghClient.Query(gh.ctx, &ownerQuery, queryVars)
+		err := gh.GhClient.Query(gh.ctx, &ownerQuery, queryVars)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to query GitHub for repository ownership.")
 		}

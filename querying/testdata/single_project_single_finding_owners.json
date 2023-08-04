@@ -1,0 +1,11 @@
+{
+    "data": {
+        "organization": {
+            "teams": {
+                "totalCount": 0,
+                "pageInfo": { "hasNextPage": false },
+                "nodes": []
+            }
+        }
+    }
+}
