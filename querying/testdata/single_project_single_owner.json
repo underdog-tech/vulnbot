@@ -1,0 +1,25 @@
+{
+    "data": {
+        "organization": {
+            "teams": {
+                "totalCount": 0,
+                "pageInfo": { "hasNextPage": false },
+                "nodes": [
+                    {
+                        "name": "Heart of Gold Crew",
+                        "slug": "crew",
+                        "repositories": {
+                            "pageInfo": { "hasNextPage": false },
+                            "edges": [
+                                {
+                                    "permission": "MAINTAIN",
+                                    "node": { "name": "zaphod" }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
