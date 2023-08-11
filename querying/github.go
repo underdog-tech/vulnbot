@@ -209,7 +209,11 @@ func (gh *GithubDataSource) gatherRepoOwners(projects *ProjectCollection) {
 			log.Fatal().Err(err).Msg("Failed to query GitHub for repository ownership.")
 		}
 		for _, team := range ownerQuery.Organization.Teams.Nodes {
-			teamConfig, _ := config.GetTeamConfigBySlug(team.Slug, gh.conf.Team)
+			teamConfig, err := config.GetTeamConfigBySlug(team.Slug, gh.conf.Team)
+			if err != nil {
+				log.Warn().Err(err).Str("slug", team.Slug).Msg("Failed to load team from config.")
+				continue
+			}
 			// TODO: Handle pagination of repositories owned by a team
 			for _, repo := range team.Repositories.Edges {
 				switch repo.Permission {
