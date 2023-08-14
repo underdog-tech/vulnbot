@@ -1,6 +1,7 @@
 package internal_test
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -114,5 +115,74 @@ func TestSummarizeGeneratesProjectReports(t *testing.T) {
 		internal.NewProjectFindingSummary("baz"),
 	}
 	_, actual := internal.SummarizeFindings(&testProjectFindings)
+	assert.Equal(t, expected, actual)
+}
+
+func TestGetHighestCriticality(t *testing.T) {
+	severities := internal.GetSeverityReportOrder()
+	for _, severity := range severities {
+		t.Run(string(severity), func(t *testing.T) {
+			sevMap := internal.NewSeverityMap()
+			sevMap[severity] = 1
+			summary := internal.ProjectFindingSummary{
+				Name: "foo",
+				FindingSummary: internal.FindingSummary{
+					AffectedRepos:   1,
+					TotalCount:      1,
+					VulnsBySeverity: sevMap,
+				},
+			}
+			assert.Equal(t, severity, summary.GetHighestCriticality())
+		})
+	}
+}
+
+func TestGetHighestCriticalityNoFindings(t *testing.T) {
+	summary := internal.NewProjectFindingSummary("foo")
+	assert.Equal(t, summary.GetHighestCriticality(), querying.FindingSeverityUndefined)
+}
+
+func TestSortTeamProjectCollection(t *testing.T) {
+	fooSeverities := internal.NewSeverityMap()
+	fooSeverities[querying.FindingSeverityCritical] = 1
+	fooSeverities[querying.FindingSeverityHigh] = 1
+	foo := internal.ProjectFindingSummary{
+		Name: "foo",
+		FindingSummary: internal.FindingSummary{
+			AffectedRepos:   1,
+			TotalCount:      2,
+			VulnsBySeverity: fooSeverities,
+		},
+	}
+
+	barSeverities := internal.NewSeverityMap()
+	barSeverities[querying.FindingSeverityCritical] = 1
+	barSeverities[querying.FindingSeverityInfo] = 1
+	bar := internal.ProjectFindingSummary{
+		Name: "bar",
+		FindingSummary: internal.FindingSummary{
+			AffectedRepos:   1,
+			TotalCount:      2,
+			VulnsBySeverity: barSeverities,
+		},
+	}
+
+	bazSeverities := internal.NewSeverityMap()
+	bazSeverities[querying.FindingSeverityModerate] = 1
+	baz := internal.ProjectFindingSummary{
+		Name: "baz",
+		FindingSummary: internal.FindingSummary{
+			AffectedRepos:   1,
+			TotalCount:      1,
+			VulnsBySeverity: bazSeverities,
+		},
+	}
+
+	// "bar" and "foo" both have critical, so should be first
+	// baz only has moderate so should be second.
+	expected := internal.TeamProjectCollection{&bar, &foo, &baz}
+	actual := internal.TeamProjectCollection{&foo, &baz, &bar}
+
+	sort.Sort(actual)
 	assert.Equal(t, expected, actual)
 }

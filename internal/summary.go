@@ -125,10 +125,9 @@ func (r TeamProjectCollection) Swap(i, j int) {
 // Sort projects by criticality of findings, then by name
 func (r TeamProjectCollection) Less(i, j int) bool {
 	sevOne := r[i].GetHighestCriticality()
-	sevTwo := r[i].GetHighestCriticality()
+	sevTwo := r[j].GetHighestCriticality()
 	if sevOne != sevTwo {
-		// Since these are iotas, a lower criticality is a higher number
-		return sevOne > sevTwo
+		return sevOne < sevTwo
 	}
 	return r[i].Name < r[j].Name
 }
