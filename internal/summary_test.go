@@ -4,7 +4,9 @@ import (
 	"sort"
 	"testing"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/underdog-tech/vulnbot/config"
 	"github.com/underdog-tech/vulnbot/internal"
 	"github.com/underdog-tech/vulnbot/querying"
 )
@@ -184,5 +186,55 @@ func TestSortTeamProjectCollection(t *testing.T) {
 	actual := internal.TeamProjectCollection{&foo, &baz, &bar}
 
 	sort.Sort(actual)
+	assert.Equal(t, expected, actual)
+}
+
+func TestGroupTeamFindings(t *testing.T) {
+	teamFoo := config.TeamConfig{
+		Name:        "Team Foo",
+		Github_slug: "foo",
+	}
+	teamBar := config.TeamConfig{
+		Name:        "Team Bar",
+		Github_slug: "bar",
+	}
+	teamBaz := config.TeamConfig{
+		Name:        "The team known as Baz",
+		Github_slug: "baz",
+	}
+	// Project "foo" will have 3 owners
+	fooOwners := mapset.NewSet[config.TeamConfig]()
+	fooOwners.Add(teamFoo)
+	fooOwners.Add(teamBar)
+	fooOwners.Add(teamBaz)
+	testProjectFindings.Projects[0].Owners = fooOwners
+	// Project "bar" will have 2 owners
+	barOwners := mapset.NewSet[config.TeamConfig]()
+	barOwners.Add(teamBar)
+	barOwners.Add(teamBaz)
+	testProjectFindings.Projects[1].Owners = barOwners
+	// Project "baz" will have 1 owner
+	bazOwners := mapset.NewSet[config.TeamConfig]()
+	bazOwners.Add(teamBaz)
+	testProjectFindings.Projects[2].Owners = bazOwners
+	// Make sure to clear our ownership changes when the test is done
+	defer func() {
+		for _, proj := range testProjectFindings.Projects {
+			proj.Owners = mapset.NewSet[config.TeamConfig]()
+		}
+	}()
+	fooSummary := internal.NewProjectFindingSummary("foo")
+	barSummary := internal.NewProjectFindingSummary("bar")
+	bazSummary := internal.NewProjectFindingSummary("baz")
+	summaries := []internal.ProjectFindingSummary{fooSummary, barSummary, bazSummary}
+
+	expected := map[config.TeamConfig]internal.TeamProjectCollection{
+		teamFoo: {&fooSummary},
+		teamBar: {&fooSummary, &barSummary},
+		teamBaz: {&fooSummary, &barSummary, &bazSummary},
+	}
+
+	actual := internal.GroupTeamFindings(&testProjectFindings, summaries)
+
 	assert.Equal(t, expected, actual)
 }

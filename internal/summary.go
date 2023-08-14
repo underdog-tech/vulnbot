@@ -132,6 +132,8 @@ func (r TeamProjectCollection) Less(i, j int) bool {
 	return r[i].Name < r[j].Name
 }
 
+// GroupTeamFindings gathers a map of each team and the summaries of the projects
+// that team "owns", and should receive reports for.
 func GroupTeamFindings(projects *querying.ProjectCollection, summaries []ProjectFindingSummary) map[config.TeamConfig]TeamProjectCollection {
 	teamProjects := map[config.TeamConfig]TeamProjectCollection{}
 
