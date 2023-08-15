@@ -142,6 +142,7 @@ func GroupTeamFindings(projects *querying.ProjectCollection, summaries []Project
 		for _, sum := range summaries {
 			if sum.Name == project.Name {
 				projectSummary = sum
+				break
 			}
 		}
 		ownerIter := project.Owners.Iterator()
