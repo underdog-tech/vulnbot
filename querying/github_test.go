@@ -56,8 +56,8 @@ func TestCollectFindingsSingleProjectSingleFinding(t *testing.T) {
 				},
 				Findings: []*querying.Finding{
 					{
-						Ecosystem:   querying.FindingEcosystemGo,
-						Severity:    querying.FindingSeverityCritical,
+						Ecosystem:   config.FindingEcosystemGo,
+						Severity:    config.FindingSeverityCritical,
 						Description: "The Improbability Drive is far too improbable.",
 						PackageName: "improbability-drive",
 						Identifiers: querying.FindingIdentifierMap{
@@ -116,8 +116,8 @@ func TestCollectFindingsOwnerNotConfigured(t *testing.T) {
 				},
 				Findings: []*querying.Finding{
 					{
-						Ecosystem:   querying.FindingEcosystemGo,
-						Severity:    querying.FindingSeverityCritical,
+						Ecosystem:   config.FindingEcosystemGo,
+						Severity:    config.FindingSeverityCritical,
 						Description: "The Improbability Drive is far too improbable.",
 						PackageName: "improbability-drive",
 						Identifiers: querying.FindingIdentifierMap{
@@ -180,8 +180,8 @@ func TestCollectFindingsOwnerIsConfigured(t *testing.T) {
 				},
 				Findings: []*querying.Finding{
 					{
-						Ecosystem:   querying.FindingEcosystemGo,
-						Severity:    querying.FindingSeverityCritical,
+						Ecosystem:   config.FindingEcosystemGo,
+						Severity:    config.FindingSeverityCritical,
 						Description: "The Improbability Drive is far too improbable.",
 						PackageName: "improbability-drive",
 						Identifiers: querying.FindingIdentifierMap{

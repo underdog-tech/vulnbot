@@ -1,6 +1,10 @@
 package querying
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/underdog-tech/vulnbot/config"
+)
 
 type FindingIdentifierType string
 type FindingIdentifierMap map[FindingIdentifierType]string
@@ -12,8 +16,8 @@ const (
 
 type Finding struct {
 	Identifiers FindingIdentifierMap
-	Ecosystem   FindingEcosystemType
-	Severity    FindingSeverityType
+	Ecosystem   config.FindingEcosystemType
+	Severity    config.FindingSeverityType
 	Description string
 	PackageName string
 	mu          sync.Mutex
