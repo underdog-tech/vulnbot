@@ -81,19 +81,19 @@ type orgVulnerabilityQuery struct {
 }
 
 // Ref: https://docs.github.com/en/graphql/reference/enums#securityadvisoryecosystem
-var githubEcosystems = map[string]FindingEcosystemType{
-	"ACTIONS":  FindingEcosystemGHA,
-	"COMPOSER": FindingEcosystemPHP,
-	"ERLANG":   FindingEcosystemErlang,
-	"GO":       FindingEcosystemGo,
-	"MAVEN":    FindingEcosystemJava,
-	"NPM":      FindingEcosystemJS,
-	"NUGET":    FindingEcosystemCSharp,
-	"PIP":      FindingEcosystemPython,
-	"PUB":      FindingEcosystemDart,
-	"RUBYGEMS": FindingEcosystemRuby,
-	"RUST":     FindingEcosystemRust,
-	"SWIFT":    FindingEcosystemSwift,
+var githubEcosystems = map[string]config.FindingEcosystemType{
+	"ACTIONS":  config.FindingEcosystemGHA,
+	"COMPOSER": config.FindingEcosystemPHP,
+	"ERLANG":   config.FindingEcosystemErlang,
+	"GO":       config.FindingEcosystemGo,
+	"MAVEN":    config.FindingEcosystemJava,
+	"NPM":      config.FindingEcosystemJS,
+	"NUGET":    config.FindingEcosystemCSharp,
+	"PIP":      config.FindingEcosystemPython,
+	"PUB":      config.FindingEcosystemDart,
+	"RUBYGEMS": config.FindingEcosystemRuby,
+	"RUST":     config.FindingEcosystemRust,
+	"SWIFT":    config.FindingEcosystemSwift,
 }
 
 func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *sync.WaitGroup) error {

@@ -1,4 +1,4 @@
-package querying
+package config
 
 type FindingSeverityType uint8
 

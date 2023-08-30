@@ -18,15 +18,15 @@ var testProjectFindings = querying.ProjectCollection{
 			Name: "foo",
 			Findings: []*querying.Finding{
 				{
-					Ecosystem: querying.FindingEcosystemGo,
-					Severity:  querying.FindingSeverityCritical,
+					Ecosystem: config.FindingEcosystemGo,
+					Severity:  config.FindingSeverityCritical,
 					Identifiers: querying.FindingIdentifierMap{
 						querying.FindingIdentifierCVE: "CVE-1",
 					},
 				},
 				{
-					Ecosystem: querying.FindingEcosystemPython,
-					Severity:  querying.FindingSeverityHigh,
+					Ecosystem: config.FindingEcosystemPython,
+					Severity:  config.FindingSeverityHigh,
 					Identifiers: querying.FindingIdentifierMap{
 						querying.FindingIdentifierCVE: "CVE-2",
 					},
@@ -37,15 +37,15 @@ var testProjectFindings = querying.ProjectCollection{
 			Name: "bar",
 			Findings: []*querying.Finding{
 				{
-					Ecosystem: querying.FindingEcosystemGo,
-					Severity:  querying.FindingSeverityInfo,
+					Ecosystem: config.FindingEcosystemGo,
+					Severity:  config.FindingSeverityInfo,
 					Identifiers: querying.FindingIdentifierMap{
 						querying.FindingIdentifierCVE: "CVE-3",
 					},
 				},
 				{
-					Ecosystem: querying.FindingEcosystemJS,
-					Severity:  querying.FindingSeverityCritical,
+					Ecosystem: config.FindingEcosystemJS,
+					Severity:  config.FindingSeverityCritical,
 					Identifiers: querying.FindingIdentifierMap{
 						querying.FindingIdentifierCVE: "CVE-4",
 					},
@@ -61,16 +61,16 @@ var testProjectFindings = querying.ProjectCollection{
 
 func TestSummarizeGeneratesOverallSummary(t *testing.T) {
 	severities := internal.NewSeverityMap()
-	severities[querying.FindingSeverityCritical] = 2
-	severities[querying.FindingSeverityHigh] = 1
-	severities[querying.FindingSeverityInfo] = 1
+	severities[config.FindingSeverityCritical] = 2
+	severities[config.FindingSeverityHigh] = 1
+	severities[config.FindingSeverityInfo] = 1
 	expected := internal.FindingSummary{
 		AffectedRepos: 2,
 		TotalCount:    4,
-		VulnsByEcosystem: map[querying.FindingEcosystemType]int{
-			querying.FindingEcosystemGo:     2,
-			querying.FindingEcosystemJS:     1,
-			querying.FindingEcosystemPython: 1,
+		VulnsByEcosystem: map[config.FindingEcosystemType]int{
+			config.FindingEcosystemGo:     2,
+			config.FindingEcosystemJS:     1,
+			config.FindingEcosystemPython: 1,
 		},
 		VulnsBySeverity: severities,
 	}
@@ -80,32 +80,32 @@ func TestSummarizeGeneratesOverallSummary(t *testing.T) {
 
 func TestSummarizeGeneratesProjectReports(t *testing.T) {
 	fooSeverities := internal.NewSeverityMap()
-	fooSeverities[querying.FindingSeverityCritical] = 1
-	fooSeverities[querying.FindingSeverityHigh] = 1
+	fooSeverities[config.FindingSeverityCritical] = 1
+	fooSeverities[config.FindingSeverityHigh] = 1
 	foo := internal.ProjectFindingSummary{
 		Name: "foo",
 		FindingSummary: internal.FindingSummary{
 			AffectedRepos: 1,
 			TotalCount:    2,
-			VulnsByEcosystem: map[querying.FindingEcosystemType]int{
-				querying.FindingEcosystemGo:     1,
-				querying.FindingEcosystemPython: 1,
+			VulnsByEcosystem: map[config.FindingEcosystemType]int{
+				config.FindingEcosystemGo:     1,
+				config.FindingEcosystemPython: 1,
 			},
 			VulnsBySeverity: fooSeverities,
 		},
 	}
 
 	barSeverities := internal.NewSeverityMap()
-	barSeverities[querying.FindingSeverityCritical] = 1
-	barSeverities[querying.FindingSeverityInfo] = 1
+	barSeverities[config.FindingSeverityCritical] = 1
+	barSeverities[config.FindingSeverityInfo] = 1
 	bar := internal.ProjectFindingSummary{
 		Name: "bar",
 		FindingSummary: internal.FindingSummary{
 			AffectedRepos: 1,
 			TotalCount:    2,
-			VulnsByEcosystem: map[querying.FindingEcosystemType]int{
-				querying.FindingEcosystemGo: 1,
-				querying.FindingEcosystemJS: 1,
+			VulnsByEcosystem: map[config.FindingEcosystemType]int{
+				config.FindingEcosystemGo: 1,
+				config.FindingEcosystemJS: 1,
 			},
 			VulnsBySeverity: barSeverities,
 		},
@@ -141,13 +141,13 @@ func TestGetHighestCriticality(t *testing.T) {
 
 func TestGetHighestCriticalityNoFindings(t *testing.T) {
 	summary := internal.NewProjectFindingSummary("foo")
-	assert.Equal(t, summary.GetHighestCriticality(), querying.FindingSeverityUndefined)
+	assert.Equal(t, summary.GetHighestCriticality(), config.FindingSeverityUndefined)
 }
 
 func TestSortTeamProjectCollection(t *testing.T) {
 	fooSeverities := internal.NewSeverityMap()
-	fooSeverities[querying.FindingSeverityCritical] = 1
-	fooSeverities[querying.FindingSeverityHigh] = 1
+	fooSeverities[config.FindingSeverityCritical] = 1
+	fooSeverities[config.FindingSeverityHigh] = 1
 	foo := internal.ProjectFindingSummary{
 		Name: "foo",
 		FindingSummary: internal.FindingSummary{
@@ -158,8 +158,8 @@ func TestSortTeamProjectCollection(t *testing.T) {
 	}
 
 	barSeverities := internal.NewSeverityMap()
-	barSeverities[querying.FindingSeverityCritical] = 1
-	barSeverities[querying.FindingSeverityInfo] = 1
+	barSeverities[config.FindingSeverityCritical] = 1
+	barSeverities[config.FindingSeverityInfo] = 1
 	bar := internal.ProjectFindingSummary{
 		Name: "bar",
 		FindingSummary: internal.FindingSummary{
@@ -170,7 +170,7 @@ func TestSortTeamProjectCollection(t *testing.T) {
 	}
 
 	bazSeverities := internal.NewSeverityMap()
-	bazSeverities[querying.FindingSeverityModerate] = 1
+	bazSeverities[config.FindingSeverityModerate] = 1
 	baz := internal.ProjectFindingSummary{
 		Name: "baz",
 		FindingSummary: internal.FindingSummary{
