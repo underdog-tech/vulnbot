@@ -10,16 +10,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-type SeverityConfig struct {
-	Label       string
-	Slack_emoji string
-}
-
-type EcosystemConfig struct {
-	Label       string
-	Slack_emoji string
-}
-
 type TeamConfig struct {
 	Name          string
 	Github_slug   string

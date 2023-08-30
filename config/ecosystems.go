@@ -18,3 +18,18 @@ const (
 	FindingEcosystemRust   FindingEcosystemType = "rust"
 	FindingEcosystemSwift  FindingEcosystemType = "swift"
 )
+
+func GetConsoleEcosystemIcons() map[FindingEcosystemType]string {
+	return map[FindingEcosystemType]string{
+		FindingEcosystemGo:     "🦦",
+		FindingEcosystemJava:   "🪶 ",
+		FindingEcosystemJS:     "⬢ ",
+		FindingEcosystemPython: "🐍",
+		FindingEcosystemRuby:   "♦️ ",
+	}
+}
+
+type EcosystemConfig struct {
+	Label       string
+	Slack_emoji string
+}

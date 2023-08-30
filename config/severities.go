@@ -45,3 +45,19 @@ func GetSeverityReportOrder() []FindingSeverityType {
 		FindingSeverityUndefined,
 	}
 }
+
+func GetConsoleSeverityColors() map[FindingSeverityType]string {
+	return map[FindingSeverityType]string{
+		FindingSeverityCritical:  "#B21515",
+		FindingSeverityHigh:      "#D26C00",
+		FindingSeverityModerate:  "#FBD100",
+		FindingSeverityLow:       "#233EB5",
+		FindingSeverityInfo:      "#56B8F5",
+		FindingSeverityUndefined: "#CFD0D1",
+	}
+}
+
+type SeverityConfig struct {
+	Label       string
+	Slack_emoji string
+}
