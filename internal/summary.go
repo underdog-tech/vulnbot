@@ -5,41 +5,6 @@ import (
 	"github.com/underdog-tech/vulnbot/querying"
 )
 
-var SeverityNames = map[config.FindingSeverityType]string{
-	config.FindingSeverityCritical:  "Critical",
-	config.FindingSeverityHigh:      "High",
-	config.FindingSeverityModerate:  "Moderate",
-	config.FindingSeverityLow:       "Low",
-	config.FindingSeverityInfo:      "Info",
-	config.FindingSeverityUndefined: "Undefined",
-}
-
-// NewSeverityMap returns a map of finding severities all associated with a
-// value of 0, meant to be populated with a count of findings in the relevant
-// scope. Notably, this map does not include either "Info" or "Undefined"
-// severities, as these are only reported if present.
-func NewSeverityMap() map[config.FindingSeverityType]int {
-	return map[config.FindingSeverityType]int{
-		config.FindingSeverityCritical: 0,
-		config.FindingSeverityHigh:     0,
-		config.FindingSeverityModerate: 0,
-		config.FindingSeverityLow:      0,
-	}
-}
-
-// GetSeverityReportOrder returns the order in which we want to report severities.
-// This is necessary because we cannot declare a constant array in Go.
-func GetSeverityReportOrder() []config.FindingSeverityType {
-	return []config.FindingSeverityType{
-		config.FindingSeverityCritical,
-		config.FindingSeverityHigh,
-		config.FindingSeverityModerate,
-		config.FindingSeverityLow,
-		config.FindingSeverityInfo,
-		config.FindingSeverityUndefined,
-	}
-}
-
 type FindingSummary struct {
 	TotalCount       int
 	AffectedRepos    int
@@ -56,7 +21,7 @@ type ProjectFindingSummary struct {
 // GetHighestCriticality looks for the severity level of the most critical
 // vulnerability in a project.
 func (r FindingSummary) GetHighestCriticality() config.FindingSeverityType {
-	severities := GetSeverityReportOrder()
+	severities := config.GetSeverityReportOrder()
 	for _, sev := range severities {
 		count, exists := r.VulnsBySeverity[sev]
 		if exists && count > 0 {
@@ -71,7 +36,7 @@ func NewFindingSummary() FindingSummary {
 		AffectedRepos:    0,
 		TotalCount:       0,
 		VulnsByEcosystem: map[config.FindingEcosystemType]int{},
-		VulnsBySeverity:  NewSeverityMap(),
+		VulnsBySeverity:  config.NewSeverityMap(),
 	}
 }
 

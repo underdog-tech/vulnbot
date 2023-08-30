@@ -60,7 +60,7 @@ var testProjectFindings = querying.ProjectCollection{
 }
 
 func TestSummarizeGeneratesOverallSummary(t *testing.T) {
-	severities := internal.NewSeverityMap()
+	severities := config.NewSeverityMap()
 	severities[config.FindingSeverityCritical] = 2
 	severities[config.FindingSeverityHigh] = 1
 	severities[config.FindingSeverityInfo] = 1
@@ -79,7 +79,7 @@ func TestSummarizeGeneratesOverallSummary(t *testing.T) {
 }
 
 func TestSummarizeGeneratesProjectReports(t *testing.T) {
-	fooSeverities := internal.NewSeverityMap()
+	fooSeverities := config.NewSeverityMap()
 	fooSeverities[config.FindingSeverityCritical] = 1
 	fooSeverities[config.FindingSeverityHigh] = 1
 	foo := internal.ProjectFindingSummary{
@@ -95,7 +95,7 @@ func TestSummarizeGeneratesProjectReports(t *testing.T) {
 		},
 	}
 
-	barSeverities := internal.NewSeverityMap()
+	barSeverities := config.NewSeverityMap()
 	barSeverities[config.FindingSeverityCritical] = 1
 	barSeverities[config.FindingSeverityInfo] = 1
 	bar := internal.ProjectFindingSummary{
@@ -121,10 +121,10 @@ func TestSummarizeGeneratesProjectReports(t *testing.T) {
 }
 
 func TestGetHighestCriticality(t *testing.T) {
-	severities := internal.GetSeverityReportOrder()
+	severities := config.GetSeverityReportOrder()
 	for _, severity := range severities {
 		t.Run(string(severity), func(t *testing.T) {
-			sevMap := internal.NewSeverityMap()
+			sevMap := config.NewSeverityMap()
 			sevMap[severity] = 1
 			summary := internal.ProjectFindingSummary{
 				Name: "foo",
@@ -145,7 +145,7 @@ func TestGetHighestCriticalityNoFindings(t *testing.T) {
 }
 
 func TestSortTeamProjectCollection(t *testing.T) {
-	fooSeverities := internal.NewSeverityMap()
+	fooSeverities := config.NewSeverityMap()
 	fooSeverities[config.FindingSeverityCritical] = 1
 	fooSeverities[config.FindingSeverityHigh] = 1
 	foo := internal.ProjectFindingSummary{
@@ -157,7 +157,7 @@ func TestSortTeamProjectCollection(t *testing.T) {
 		},
 	}
 
-	barSeverities := internal.NewSeverityMap()
+	barSeverities := config.NewSeverityMap()
 	barSeverities[config.FindingSeverityCritical] = 1
 	barSeverities[config.FindingSeverityInfo] = 1
 	bar := internal.ProjectFindingSummary{
@@ -169,7 +169,7 @@ func TestSortTeamProjectCollection(t *testing.T) {
 		},
 	}
 
-	bazSeverities := internal.NewSeverityMap()
+	bazSeverities := config.NewSeverityMap()
 	bazSeverities[config.FindingSeverityModerate] = 1
 	baz := internal.ProjectFindingSummary{
 		Name: "baz",

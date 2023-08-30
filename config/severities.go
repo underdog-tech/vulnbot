@@ -10,3 +10,38 @@ const (
 	FindingSeverityInfo
 	FindingSeverityUndefined
 )
+
+var SeverityNames = map[FindingSeverityType]string{
+	FindingSeverityCritical:  "Critical",
+	FindingSeverityHigh:      "High",
+	FindingSeverityModerate:  "Moderate",
+	FindingSeverityLow:       "Low",
+	FindingSeverityInfo:      "Info",
+	FindingSeverityUndefined: "Undefined",
+}
+
+// NewSeverityMap returns a map of finding severities all associated with a
+// value of 0, meant to be populated with a count of findings in the relevant
+// scope. Notably, this map does not include either "Info" or "Undefined"
+// severities, as these are only reported if present.
+func NewSeverityMap() map[FindingSeverityType]int {
+	return map[FindingSeverityType]int{
+		FindingSeverityCritical: 0,
+		FindingSeverityHigh:     0,
+		FindingSeverityModerate: 0,
+		FindingSeverityLow:      0,
+	}
+}
+
+// GetSeverityReportOrder returns the order in which we want to report severities.
+// This is necessary because we cannot declare a constant array in Go.
+func GetSeverityReportOrder() []FindingSeverityType {
+	return []FindingSeverityType{
+		FindingSeverityCritical,
+		FindingSeverityHigh,
+		FindingSeverityModerate,
+		FindingSeverityLow,
+		FindingSeverityInfo,
+		FindingSeverityUndefined,
+	}
+}
