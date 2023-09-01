@@ -78,15 +78,15 @@ func TestBuildSlackSummaryReport(t *testing.T) {
 	reporter := SlackReporter{}
 
 	// Construct a full summary report so that we can verify the output
-	report := NewVulnerabilityReport()
+	report := NewFindingSummary()
 	report.AffectedRepos = 2
 	report.TotalCount = 42
-	report.VulnsByEcosystem["Pip"] = 2
-	report.VulnsByEcosystem["Npm"] = 40
-	report.VulnsBySeverity["Critical"] = 10
-	report.VulnsBySeverity["High"] = 10
-	report.VulnsBySeverity["Moderate"] = 10
-	report.VulnsBySeverity["Low"] = 12
+	report.VulnsByEcosystem[config.FindingEcosystemPython] = 2
+	report.VulnsByEcosystem[config.FindingEcosystemJS] = 40
+	report.VulnsBySeverity[config.FindingSeverityCritical] = 10
+	report.VulnsBySeverity[config.FindingSeverityHigh] = 10
+	report.VulnsBySeverity[config.FindingSeverityModerate] = 10
+	report.VulnsBySeverity[config.FindingSeverityLow] = 12
 
 	expected_data := map[string]interface{}{
 		"replace_original": false,
@@ -168,14 +168,14 @@ func TestBuildSlackSummaryReport(t *testing.T) {
 				"type": "section",
 				"text": map[string]interface{}{
 					"type": "mrkdwn",
-					"text": "  *Npm:* 40",
+					"text": "  *Js:* 40",
 				},
 			},
 			{
 				"type": "section",
 				"text": map[string]interface{}{
 					"type": "mrkdwn",
-					"text": "  *Pip:* 2",
+					"text": "  *Python:* 2",
 				},
 			},
 		},
@@ -190,7 +190,7 @@ func TestSendSlackSummaryReportSendsSingleMessage(t *testing.T) {
 	mockClient := new(MockSlackClient)
 	config := config.Config{Default_slack_channel: "channel"}
 	reporter := SlackReporter{Config: config, client: mockClient}
-	report := NewVulnerabilityReport()
+	report := NewFindingSummary()
 
 	mockClient.On("PostMessage", "channel", mock.Anything, mock.Anything).Return("", "", nil).Once()
 
@@ -205,11 +205,11 @@ func TestSendSlackSummaryReportSendsSingleMessage(t *testing.T) {
 func TestBuildSlackTeamRepositoryReport(t *testing.T) {
 	reporter := SlackReporter{}
 
-	report := NewVulnerabilityReport()
-	report.VulnsByEcosystem["Pip"] = 15
-	report.VulnsBySeverity["Critical"] = 2
-	report.VulnsBySeverity["High"] = 3
-	report.VulnsBySeverity["Low"] = 10
+	report := NewProjectFindingSummary("foo")
+	report.VulnsByEcosystem[config.FindingEcosystemPython] = 15
+	report.VulnsBySeverity[config.FindingSeverityCritical] = 2
+	report.VulnsBySeverity[config.FindingSeverityHigh] = 3
+	report.VulnsBySeverity[config.FindingSeverityLow] = 10
 
 	expected_data := map[string]interface{}{
 		"type": "section",
@@ -226,36 +226,34 @@ func TestBuildSlackTeamRepositoryReport(t *testing.T) {
 	}
 
 	expected, _ := json.Marshal(expected_data)
-	repoReport := reporter.buildTeamRepositoryReport("foo", report)
+	repoReport := reporter.buildTeamRepositoryReport(&report)
 	actual, _ := json.Marshal(repoReport)
 	assert.JSONEq(t, string(expected), string(actual))
 }
 
 func TestBuildSlackTeamReport(t *testing.T) {
-	config := config.Config{
+	cfg := config.Config{
 		Team: []config.TeamConfig{
 			{Name: "TeamName", Slack_channel: "team-foo", Github_slug: "TeamName"},
 		},
 	}
-	reporter := SlackReporter{Config: config}
+	reporter := SlackReporter{Config: cfg}
 
-	repo1Report := NewVulnerabilityReport()
-	repo1Report.VulnsByEcosystem["Pip"] = 10
-	repo1Report.VulnsBySeverity["Low"] = 10
+	repo1Report := NewProjectFindingSummary("repo1")
+	repo1Report.VulnsByEcosystem[config.FindingEcosystemPython] = 10
+	repo1Report.VulnsBySeverity[config.FindingSeverityLow] = 10
 
-	repo2Report := NewVulnerabilityReport()
-	repo2Report.VulnsByEcosystem["Pip"] = 5
-	repo2Report.VulnsBySeverity["Critical"] = 1
-	repo2Report.VulnsBySeverity["Moderate"] = 4
+	repo2Report := NewProjectFindingSummary("repo2")
+	repo2Report.VulnsByEcosystem[config.FindingEcosystemPython] = 5
+	repo2Report.VulnsBySeverity[config.FindingSeverityCritical] = 1
+	repo2Report.VulnsBySeverity[config.FindingSeverityModerate] = 4
 
-	summaryReport := NewVulnerabilityReport()
+	summaryReport := NewProjectFindingSummary(SUMMARY_KEY)
 	summaryReport.AffectedRepos = 2
 	summaryReport.TotalCount = 15
 
-	repoReports := map[string]VulnerabilityReport{
-		"repo1":     repo1Report,
-		"repo2":     repo2Report,
-		SUMMARY_KEY: summaryReport,
+	repoReports := TeamProjectCollection{
+		&repo1Report, &repo2Report, &summaryReport,
 	}
 
 	// `buildTeamRepositoryReport` is tested elsewhere, so no need to manually
@@ -263,8 +261,8 @@ func TestBuildSlackTeamReport(t *testing.T) {
 	// We have to marshal and then unmarshal to get then into JSON format then
 	// back into a Go data structure.
 	var repo1Expected, repo2Expected map[string]interface{}
-	repo1Data := reporter.buildTeamRepositoryReport("repo1", repo1Report)
-	repo2Data := reporter.buildTeamRepositoryReport("repo2", repo2Report)
+	repo1Data := reporter.buildTeamRepositoryReport(&repo1Report)
+	repo2Data := reporter.buildTeamRepositoryReport(&repo2Report)
 	repo1ExpectedBytes, _ := json.Marshal(repo1Data)
 	_ = json.Unmarshal(repo1ExpectedBytes, &repo1Expected)
 	repo2ExpectedBytes, _ := json.Marshal(repo2Data)
@@ -309,12 +307,12 @@ func TestBuildSlackTeamReport(t *testing.T) {
 			{
 				"type": "divider",
 			},
-			repo1Expected,
 			repo2Expected,
+			repo1Expected,
 		},
 	}
 	expected, _ := json.Marshal(expectedData)
-	teamReport := reporter.buildTeamReport("TeamName", repoReports, TEST_REPORT_TIME)
+	teamReport := reporter.buildTeamReport(cfg.Team[0], repoReports, TEST_REPORT_TIME)
 	actual, _ := json.Marshal(teamReport.Message)
 	// Ensure the Slack Blocks match up
 	assert.JSONEq(t, string(expected), string(actual))
@@ -325,24 +323,30 @@ func TestBuildSlackTeamReport(t *testing.T) {
 func TestSendSlackTeamReportsSendsMessagePerTeam(t *testing.T) {
 	// We want to provide config that contains 2 teams with channels, and one without.
 	// There will also be a report create for a team not included in this map.
-	config := config.Config{
+	teamFoo := config.TeamConfig{Name: "foo", Slack_channel: "team-foo", Github_slug: "foo"}
+	teamBar := config.TeamConfig{Name: "bar", Slack_channel: "team-bar", Github_slug: "bar"}
+
+	cfg := config.Config{
 		Team: []config.TeamConfig{
-			{Name: "foo", Slack_channel: "team-foo", Github_slug: "foo"},
-			{Name: "bar", Slack_channel: "team-bar", Github_slug: "bar"},
+			teamFoo,
+			teamBar,
 			{Name: "baz", Github_slug: "baz"},
 		},
 	}
 	mockClient := new(MockSlackClient)
-	reporter := SlackReporter{Config: config, client: mockClient}
-	repo1Report := NewVulnerabilityReport()
-	repo2Report := NewVulnerabilityReport()
-	teamReports := map[string]map[string]VulnerabilityReport{
-		"foo": {
-			"repo1": repo1Report,
-			"repo2": repo2Report,
+	reporter := SlackReporter{Config: cfg, client: mockClient}
+	repo1Report := NewProjectFindingSummary("repo1")
+	repo2Report := NewProjectFindingSummary("repo2")
+	summaryReport := NewProjectFindingSummary(SUMMARY_KEY)
+	teamReports := map[config.TeamConfig]TeamProjectCollection{
+		teamFoo: {
+			&repo1Report,
+			&repo2Report,
+			&summaryReport,
 		},
-		"bar": {
-			"repo1": repo1Report,
+		teamBar: {
+			&repo1Report,
+			&summaryReport,
 		},
 	}
 	mockClient.On("PostMessage", "team-foo", mock.Anything, mock.Anything).Return("", "", nil).Once()
