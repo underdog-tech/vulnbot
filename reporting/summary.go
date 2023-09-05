@@ -150,5 +150,13 @@ func GroupTeamFindings(projects *querying.ProjectCollection, summaries []Project
 			teamProjects[owner] = append(teamProjects[owner], &projectSummary)
 		}
 	}
+	// We also need a summary report for each team
+	for team, projects := range teamProjects {
+		summaryReport := NewProjectFindingSummary(SUMMARY_KEY)
+		for _, project := range projects {
+			summaryReport.TotalCount += project.TotalCount
+		}
+		teamProjects[team] = append(teamProjects[team], &summaryReport)
+	}
 	return teamProjects
 }
