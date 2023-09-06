@@ -96,6 +96,13 @@ var githubEcosystems = map[string]config.FindingEcosystemType{
 	"SWIFT":    config.FindingEcosystemSwift,
 }
 
+var githubSeverities = map[string]config.FindingSeverityType{
+	"CRITICAL": config.FindingSeverityCritical,
+	"HIGH":     config.FindingSeverityHigh,
+	"MODERATE": config.FindingSeverityModerate,
+	"LOW":      config.FindingSeverityLow,
+}
+
 func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *sync.WaitGroup) error {
 	var alertQuery orgVulnerabilityQuery
 	log := logger.Get()
@@ -157,6 +164,7 @@ func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, rep
 			if finding.PackageName == "" {
 				finding.PackageName = vuln.SecurityVulnerability.Package.Name
 			}
+			finding.Severity = githubSeverities[vuln.SecurityVulnerability.Severity]
 		}()
 	}
 	return nil
