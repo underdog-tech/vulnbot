@@ -133,7 +133,7 @@ func (s *SlackReporter) buildTeamRepositoryReport(
 	for _, severity := range severities {
 		vulnCount, exists := repoReport.VulnsBySeverity[severity]
 		if exists {
-			if severityIcon == "" {
+			if vulnCount > 0 && severityIcon == "" {
 				severityIcon, err = config.GetIconForSeverity(severity, s.Config.Severity)
 				if err != nil {
 					severityIcon = DEFAULT_SLACK_ICON
