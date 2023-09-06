@@ -223,15 +223,20 @@ func TestGroupTeamFindings(t *testing.T) {
 			proj.Owners = mapset.NewSet[config.TeamConfig]()
 		}
 	}()
-	fooSummary := reporting.NewProjectFindingSummary("foo")
-	barSummary := reporting.NewProjectFindingSummary("bar")
-	bazSummary := reporting.NewProjectFindingSummary("baz")
-	summaries := []reporting.ProjectFindingSummary{fooSummary, barSummary, bazSummary}
+	projFooSummary := reporting.NewProjectFindingSummary("foo")
+	projBarSummary := reporting.NewProjectFindingSummary("bar")
+	projBazSummary := reporting.NewProjectFindingSummary("baz")
+
+	teamFooSummary := reporting.NewProjectFindingSummary(reporting.SUMMARY_KEY)
+	teamBarSummary := reporting.NewProjectFindingSummary(reporting.SUMMARY_KEY)
+	teamBazSummary := reporting.NewProjectFindingSummary(reporting.SUMMARY_KEY)
+
+	summaries := []reporting.ProjectFindingSummary{projFooSummary, projBarSummary, projBazSummary}
 
 	expected := map[config.TeamConfig]reporting.TeamProjectCollection{
-		teamFoo: {&fooSummary},
-		teamBar: {&fooSummary, &barSummary},
-		teamBaz: {&fooSummary, &barSummary, &bazSummary},
+		teamFoo: {&projFooSummary, &teamFooSummary},
+		teamBar: {&projFooSummary, &projBarSummary, &teamBarSummary},
+		teamBaz: {&projFooSummary, &projBarSummary, &projBazSummary, &teamBazSummary},
 	}
 
 	actual := reporting.GroupTeamFindings(&testProjectFindings, summaries)
