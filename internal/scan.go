@@ -6,7 +6,6 @@ import (
 
 	"github.com/underdog-tech/vulnbot/config"
 	"github.com/underdog-tech/vulnbot/logger"
-	"github.com/underdog-tech/vulnbot/querying"
 	"github.com/underdog-tech/vulnbot/reporting"
 
 	"github.com/spf13/cobra"
@@ -38,25 +37,10 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 
 	// Load and query all configured data sources
-	dataSources := []querying.DataSource{}
+	dataSources := GetDataSources(env, userConfig)
 
-	if env.GithubToken != "" {
-		ghds := querying.NewGithubDataSource(userConfig, env)
-		dataSources = append(dataSources, &ghds)
-	}
+	projects := QueryAllDataSources(&dataSources)
 
-	dswg := new(sync.WaitGroup)
-	projects := querying.NewProjectCollection()
-	for _, ds := range dataSources {
-		dswg.Add(1)
-		go func(currentDS querying.DataSource) {
-			err := currentDS.CollectFindings(projects, dswg)
-			if err != nil {
-				log.Error().Err(err).Type("datasource", currentDS).Msg("Failed to query datasource")
-			}
-		}(ds)
-	}
-	dswg.Wait()
 	log.Trace().Any("projects", projects).Msg("Gathered project information.")
 
 	summary, projectSummaries := reporting.SummarizeFindings(projects)
