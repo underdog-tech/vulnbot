@@ -1,4 +1,4 @@
-package internal_test
+package reporting_test
 
 import (
 	"sort"
@@ -7,8 +7,8 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/underdog-tech/vulnbot/config"
-	"github.com/underdog-tech/vulnbot/internal"
 	"github.com/underdog-tech/vulnbot/querying"
+	"github.com/underdog-tech/vulnbot/reporting"
 )
 
 // We want a fairly comprehensive collection, to generate a few different numbers
@@ -60,11 +60,11 @@ var testProjectFindings = querying.ProjectCollection{
 }
 
 func TestSummarizeGeneratesOverallSummary(t *testing.T) {
-	severities := config.NewSeverityMap()
+	severities := reporting.NewSeverityMap()
 	severities[config.FindingSeverityCritical] = 2
 	severities[config.FindingSeverityHigh] = 1
 	severities[config.FindingSeverityInfo] = 1
-	expected := internal.FindingSummary{
+	expected := reporting.FindingSummary{
 		AffectedRepos: 2,
 		TotalCount:    4,
 		VulnsByEcosystem: map[config.FindingEcosystemType]int{
@@ -74,17 +74,17 @@ func TestSummarizeGeneratesOverallSummary(t *testing.T) {
 		},
 		VulnsBySeverity: severities,
 	}
-	actual, _ := internal.SummarizeFindings(&testProjectFindings)
+	actual, _ := reporting.SummarizeFindings(&testProjectFindings)
 	assert.Equal(t, expected, actual)
 }
 
 func TestSummarizeGeneratesProjectReports(t *testing.T) {
-	fooSeverities := config.NewSeverityMap()
+	fooSeverities := reporting.NewSeverityMap()
 	fooSeverities[config.FindingSeverityCritical] = 1
 	fooSeverities[config.FindingSeverityHigh] = 1
-	foo := internal.ProjectFindingSummary{
+	foo := reporting.ProjectFindingSummary{
 		Name: "foo",
-		FindingSummary: internal.FindingSummary{
+		FindingSummary: reporting.FindingSummary{
 			AffectedRepos: 1,
 			TotalCount:    2,
 			VulnsByEcosystem: map[config.FindingEcosystemType]int{
@@ -95,12 +95,12 @@ func TestSummarizeGeneratesProjectReports(t *testing.T) {
 		},
 	}
 
-	barSeverities := config.NewSeverityMap()
+	barSeverities := reporting.NewSeverityMap()
 	barSeverities[config.FindingSeverityCritical] = 1
 	barSeverities[config.FindingSeverityInfo] = 1
-	bar := internal.ProjectFindingSummary{
+	bar := reporting.ProjectFindingSummary{
 		Name: "bar",
-		FindingSummary: internal.FindingSummary{
+		FindingSummary: reporting.FindingSummary{
 			AffectedRepos: 1,
 			TotalCount:    2,
 			VulnsByEcosystem: map[config.FindingEcosystemType]int{
@@ -111,24 +111,24 @@ func TestSummarizeGeneratesProjectReports(t *testing.T) {
 		},
 	}
 
-	expected := []internal.ProjectFindingSummary{
+	expected := []reporting.ProjectFindingSummary{
 		foo,
 		bar,
-		internal.NewProjectFindingSummary("baz"),
+		reporting.NewProjectFindingSummary("baz"),
 	}
-	_, actual := internal.SummarizeFindings(&testProjectFindings)
+	_, actual := reporting.SummarizeFindings(&testProjectFindings)
 	assert.Equal(t, expected, actual)
 }
 
 func TestGetHighestCriticality(t *testing.T) {
-	severities := config.GetSeverityReportOrder()
+	severities := reporting.GetSeverityReportOrder()
 	for _, severity := range severities {
 		t.Run(string(severity), func(t *testing.T) {
-			sevMap := config.NewSeverityMap()
+			sevMap := reporting.NewSeverityMap()
 			sevMap[severity] = 1
-			summary := internal.ProjectFindingSummary{
+			summary := reporting.ProjectFindingSummary{
 				Name: "foo",
-				FindingSummary: internal.FindingSummary{
+				FindingSummary: reporting.FindingSummary{
 					AffectedRepos:   1,
 					TotalCount:      1,
 					VulnsBySeverity: sevMap,
@@ -140,40 +140,40 @@ func TestGetHighestCriticality(t *testing.T) {
 }
 
 func TestGetHighestCriticalityNoFindings(t *testing.T) {
-	summary := internal.NewProjectFindingSummary("foo")
+	summary := reporting.NewProjectFindingSummary("foo")
 	assert.Equal(t, summary.GetHighestCriticality(), config.FindingSeverityUndefined)
 }
 
 func TestSortTeamProjectCollection(t *testing.T) {
-	fooSeverities := config.NewSeverityMap()
+	fooSeverities := reporting.NewSeverityMap()
 	fooSeverities[config.FindingSeverityCritical] = 1
 	fooSeverities[config.FindingSeverityHigh] = 1
-	foo := internal.ProjectFindingSummary{
+	foo := reporting.ProjectFindingSummary{
 		Name: "foo",
-		FindingSummary: internal.FindingSummary{
+		FindingSummary: reporting.FindingSummary{
 			AffectedRepos:   1,
 			TotalCount:      2,
 			VulnsBySeverity: fooSeverities,
 		},
 	}
 
-	barSeverities := config.NewSeverityMap()
+	barSeverities := reporting.NewSeverityMap()
 	barSeverities[config.FindingSeverityCritical] = 1
 	barSeverities[config.FindingSeverityInfo] = 1
-	bar := internal.ProjectFindingSummary{
+	bar := reporting.ProjectFindingSummary{
 		Name: "bar",
-		FindingSummary: internal.FindingSummary{
+		FindingSummary: reporting.FindingSummary{
 			AffectedRepos:   1,
 			TotalCount:      2,
 			VulnsBySeverity: barSeverities,
 		},
 	}
 
-	bazSeverities := config.NewSeverityMap()
+	bazSeverities := reporting.NewSeverityMap()
 	bazSeverities[config.FindingSeverityModerate] = 1
-	baz := internal.ProjectFindingSummary{
+	baz := reporting.ProjectFindingSummary{
 		Name: "baz",
-		FindingSummary: internal.FindingSummary{
+		FindingSummary: reporting.FindingSummary{
 			AffectedRepos:   1,
 			TotalCount:      1,
 			VulnsBySeverity: bazSeverities,
@@ -182,8 +182,8 @@ func TestSortTeamProjectCollection(t *testing.T) {
 
 	// "bar" and "foo" both have critical, so should be first
 	// baz only has moderate so should be second.
-	expected := internal.TeamProjectCollection{&bar, &foo, &baz}
-	actual := internal.TeamProjectCollection{&foo, &baz, &bar}
+	expected := reporting.TeamProjectCollection{&bar, &foo, &baz}
+	actual := reporting.TeamProjectCollection{&foo, &baz, &bar}
 
 	sort.Sort(actual)
 	assert.Equal(t, expected, actual)
@@ -223,18 +223,23 @@ func TestGroupTeamFindings(t *testing.T) {
 			proj.Owners = mapset.NewSet[config.TeamConfig]()
 		}
 	}()
-	fooSummary := internal.NewProjectFindingSummary("foo")
-	barSummary := internal.NewProjectFindingSummary("bar")
-	bazSummary := internal.NewProjectFindingSummary("baz")
-	summaries := []internal.ProjectFindingSummary{fooSummary, barSummary, bazSummary}
+	projFooSummary := reporting.NewProjectFindingSummary("foo")
+	projBarSummary := reporting.NewProjectFindingSummary("bar")
+	projBazSummary := reporting.NewProjectFindingSummary("baz")
 
-	expected := map[config.TeamConfig]internal.TeamProjectCollection{
-		teamFoo: {&fooSummary},
-		teamBar: {&fooSummary, &barSummary},
-		teamBaz: {&fooSummary, &barSummary, &bazSummary},
+	teamFooSummary := reporting.NewProjectFindingSummary(reporting.SUMMARY_KEY)
+	teamBarSummary := reporting.NewProjectFindingSummary(reporting.SUMMARY_KEY)
+	teamBazSummary := reporting.NewProjectFindingSummary(reporting.SUMMARY_KEY)
+
+	summaries := []reporting.ProjectFindingSummary{projFooSummary, projBarSummary, projBazSummary}
+
+	expected := map[config.TeamConfig]reporting.TeamProjectCollection{
+		teamFoo: {&projFooSummary, &teamFooSummary},
+		teamBar: {&projFooSummary, &projBarSummary, &teamBarSummary},
+		teamBaz: {&projFooSummary, &projBarSummary, &projBazSummary, &teamBazSummary},
 	}
 
-	actual := internal.GroupTeamFindings(&testProjectFindings, summaries)
+	actual := reporting.GroupTeamFindings(&testProjectFindings, summaries)
 
 	assert.Equal(t, expected, actual)
 }

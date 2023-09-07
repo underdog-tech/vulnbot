@@ -18,17 +18,17 @@ func TestSendConsoleSummaryReport(t *testing.T) {
 	os.Stdout = writer
 
 	reporter := ConsoleReporter{Config: config.Config{}}
-	report := NewVulnerabilityReport()
+	report := NewFindingSummary()
 	report.AffectedRepos = 2
 	report.TotalCount = 42
-	report.VulnsByEcosystem["Pip"] = 2
-	report.VulnsByEcosystem["Npm"] = 40
-	report.VulnsBySeverity["Critical"] = 10
-	report.VulnsBySeverity["High"] = 10
-	report.VulnsBySeverity["Moderate"] = 10
-	report.VulnsBySeverity["Low"] = 12
-	severityColors := getConsoleSeverityColors()
-	ecosystemIcons := getConsoleEcosystemIcons()
+	report.VulnsByEcosystem[config.FindingEcosystemPython] = 2
+	report.VulnsByEcosystem[config.FindingEcosystemJS] = 40
+	report.VulnsBySeverity[config.FindingSeverityCritical] = 10
+	report.VulnsBySeverity[config.FindingSeverityHigh] = 10
+	report.VulnsBySeverity[config.FindingSeverityModerate] = 10
+	report.VulnsBySeverity[config.FindingSeverityLow] = 12
+	severityColors := config.GetConsoleSeverityColors()
+	ecosystemIcons := config.GetConsoleEcosystemIcons()
 	expected := fmt.Sprintf(`%s
 %s
 
@@ -43,19 +43,19 @@ Affected repositories: 2
 %s: 12
 
 %s
-%s Npm: 40
-%s Pip: 2
+%s Js: 40
+%s Python: 2
 `,
 		color.Bold.Sprint("OrgName Dependabot Report"),
 		color.Style{color.OpItalic}.Sprint(TEST_REPORT_TIME_FORMATTED),
 		color.Bold.Sprint("Breakdown by Severity"),
-		color.HEX(severityColors["Critical"]).Sprint("Critical"),
-		color.HEX(severityColors["High"]).Sprint("High"),
-		color.HEX(severityColors["Moderate"]).Sprint("Moderate"),
-		color.HEX(severityColors["Low"]).Sprint("Low"),
+		color.HEX(severityColors[config.FindingSeverityCritical]).Sprint("Critical"),
+		color.HEX(severityColors[config.FindingSeverityHigh]).Sprint("High"),
+		color.HEX(severityColors[config.FindingSeverityModerate]).Sprint("Moderate"),
+		color.HEX(severityColors[config.FindingSeverityLow]).Sprint("Low"),
 		color.Bold.Sprint("Breakdown by Ecosystem"),
-		ecosystemIcons["Npm"],
-		ecosystemIcons["Pip"],
+		ecosystemIcons[config.FindingEcosystemJS],
+		ecosystemIcons[config.FindingEcosystemPython],
 	)
 
 	wg := new(sync.WaitGroup)

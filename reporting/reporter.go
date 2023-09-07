@@ -3,18 +3,20 @@ package reporting
 import (
 	"sync"
 	"time"
+
+	"github.com/underdog-tech/vulnbot/config"
 )
 
 type Reporter interface {
 	SendSummaryReport(
 		header string,
 		numRepos int,
-		report VulnerabilityReport,
+		report FindingSummary,
 		reportTime time.Time,
 		wg *sync.WaitGroup,
 	) error
 	SendTeamReports(
-		teamReports map[string]map[string]VulnerabilityReport,
+		teamReports map[config.TeamConfig]TeamProjectCollection,
 		reportTime time.Time,
 		wg *sync.WaitGroup,
 	) error

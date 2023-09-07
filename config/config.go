@@ -99,18 +99,18 @@ func LoadEnv(params ViperParams) error {
 	return nil
 }
 
-func GetIconForSeverity(severity string, severities []SeverityConfig) (string, error) {
+func GetIconForSeverity(severity FindingSeverityType, severities []SeverityConfig) (string, error) {
 	for _, config := range severities {
-		if config.Label == severity {
+		if config.Label == SeverityNames[severity] {
 			return config.Slack_emoji, nil
 		}
 	}
-	return "", fmt.Errorf("No Slack icon available for severity %s", severity)
+	return "", fmt.Errorf("No Slack icon available for severity %s", SeverityNames[severity])
 }
 
-func GetIconForEcosystem(ecosystem string, ecosystems []EcosystemConfig) (string, error) {
+func GetIconForEcosystem(ecosystem FindingEcosystemType, ecosystems []EcosystemConfig) (string, error) {
 	for _, config := range ecosystems {
-		if config.Label == ecosystem {
+		if strings.ToLower(config.Label) == string(ecosystem) {
 			return config.Slack_emoji, nil
 		}
 	}

@@ -6,15 +6,15 @@ label = "Go"
 slack_emoji = ":golang:"
 
 [[ecosystem]]
-label = "Npm"
+label = "Js"
 slack_emoji = ":javascript:"
 
 [[ecosystem]]
-label = "Pip"
+label = "Python"
 slack_emoji = ":python:"
 
 [[ecosystem]]
-label = "Rubygems"
+label = "Ruby"
 slack_emoji = ":ruby:"
 
 # Configure the severities we're reporting on
@@ -33,6 +33,10 @@ slack_emoji = ":severity_medium:"
 [[severity]]
 label = "Low"
 slack_emoji = ":severity_low:"
+
+[[severity]]
+label = "Undefined"
+slack_emoji = ":white_check_mark:"
 
 # Configure individual teams to report directly on their work
 [[team]]
