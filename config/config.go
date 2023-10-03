@@ -27,6 +27,7 @@ type Env struct {
 	GithubOrg      string `mapstructure:"GITHUB_ORG"`
 	SlackAuthToken string `mapstructure:"SLACK_AUTH_TOKEN"`
 	GithubToken    string `mapstructure:"GITHUB_TOKEN"`
+	AwsRegion      string `mapstructure:"AWS_REGION"`
 }
 
 var viperClient *viper.Viper
