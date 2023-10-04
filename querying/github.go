@@ -68,7 +68,7 @@ type repositoryQuery struct {
 				HasNextPage bool
 			}
 			Nodes []githubVulnerability
-		} `graphql:"vulnerabilityAlerts(states: OPEN, first: 5, after: $alertCursor)"`
+		} `graphql:"vulnerabilityAlerts(states: OPEN, first: 100, after: $alertCursor)"`
 	} `graphql:"repository(name: $repoName, owner: $orgName)"`
 }
 
