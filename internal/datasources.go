@@ -16,6 +16,11 @@ func GetDataSources(env config.Env, cfg config.Config) []querying.DataSource {
 		dataSources = append(dataSources, &ghds)
 	}
 
+	if env.AwsRegion != "" {
+		adc := querying.NewAWSClient(cfg, env)
+		dataSources = append(dataSources, &adc)
+	}
+
 	return dataSources
 }
 
@@ -26,12 +31,12 @@ func QueryAllDataSources(dataSources *[]querying.DataSource) *querying.ProjectCo
 
 	for _, ds := range *dataSources {
 		wg.Add(1)
-		go func(currentDS querying.DataSource) {
-			err := currentDS.CollectFindings(projects, wg)
-			if err != nil {
-				log.Error().Err(err).Type("datasource", currentDS).Msg("Failed to query datasource")
-			}
-		}(ds)
+		// go func(currentDS querying.DataSource) {
+		err := ds.CollectFindings(projects, wg)
+		if err != nil {
+			log.Error().Err(err).Type("datasource", ds).Msg("Failed to query datasource")
+		}
+		// }(ds)
 	}
 	wg.Wait()
 
