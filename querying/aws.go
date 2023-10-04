@@ -69,7 +69,7 @@ func (adc *AwsDataSource) CollectFindings(projects *ProjectCollection, wg *sync.
 	defer wg.Done()
 
 	describeRepositoriesParams := &ecr.DescribeRepositoriesInput{}
-	var allRepositories []*ecrTypes.Repository
+	var allRepositories []ecrTypes.Repository
 
 	for {
 		ecrRepositories, err := adc.EcrClient.DescribeRepositories(adc.ctx, describeRepositoriesParams)
@@ -78,17 +78,9 @@ func (adc *AwsDataSource) CollectFindings(projects *ProjectCollection, wg *sync.
 			return err
 		}
 
-		// Create a temporary slice to store the repositories from this page
-		tempRepositories := make([]*ecrTypes.Repository, len(ecrRepositories.Repositories))
-		for i, repo := range ecrRepositories.Repositories {
-			tempRepositories[i] = &repo
-		}
-
-		// Append the current page of results to the overall list
-		allRepositories = append(allRepositories, tempRepositories...)
+		allRepositories = append(allRepositories, ecrRepositories.Repositories...)
 
 		if ecrRepositories.NextToken == nil {
-			// No more results, break the loop
 			break
 		}
 
@@ -97,7 +89,7 @@ func (adc *AwsDataSource) CollectFindings(projects *ProjectCollection, wg *sync.
 	}
 
 	for _, repo := range allRepositories {
-		err := adc.processImageScanFindings(projects, *repo)
+		err := adc.processImageScanFindings(projects, repo)
 		if err != nil {
 			log.Warn().Err(err).Str("repository", *repo.RepositoryName).Msg("Error processing repository findings.")
 		}
@@ -121,13 +113,19 @@ func (adc *AwsDataSource) processImageScanFindings(projects *ProjectCollection, 
 	}
 
 	var nextToken *string
+	var imageVulnerabilities []ecrTypes.ImageScanFinding
 
 	for {
+		lastImageTag, err := extractLastImageTag(latestImage.ImageTags)
+		if err != nil {
+			return err
+		}
+
 		describeImageScanFindingsParams := &ecr.DescribeImageScanFindingsInput{
 			RepositoryName: repo.RepositoryName,
 			ImageId: &ecrTypes.ImageIdentifier{
 				ImageDigest: latestImage.ImageDigest,
-				ImageTag:    &latestImage.ImageTags[len(latestImage.ImageTags)-1],
+				ImageTag:    &lastImageTag,
 			},
 			NextToken: nextToken,
 		}
@@ -136,58 +134,80 @@ func (adc *AwsDataSource) processImageScanFindings(projects *ProjectCollection, 
 			return err
 		}
 
-		for _, vuln := range repoVulnerabilities.ImageScanFindings.Findings {
-			identifiers := FindingIdentifierMap{}
-
-			findingType := extractFindingType(*vuln.Name)
-			if findingType == "" {
-				log.Debug().Msg("No finding type found.")
-				break
-			}
-
-			identifiers[FindingIdentifierType(findingType)] = findingType
-			finding := project.GetFinding(identifiers)
-
-			finding.Description = *vuln.Description
-
-			packageName := extractPackageName(vuln.Attributes)
-			if packageName != "" {
-				finding.PackageName = packageName
-			}
-
-			finding.Severity = ecrSeverities[string(vuln.Severity)]
+		if repoVulnerabilities.ImageScanFindings != nil {
+			imageVulnerabilities = append(imageVulnerabilities, *&repoVulnerabilities.ImageScanFindings.Findings...)
 		}
 
-		// If there are no more results, update the nextToken and continue the loop
 		if repoVulnerabilities.NextToken != nil {
 			nextToken = repoVulnerabilities.NextToken
 		} else {
-			break // No more results to fetch, exit the loop.
+			break
 		}
+	}
+
+	for _, vuln := range imageVulnerabilities {
+		identifiers := FindingIdentifierMap{}
+
+		findingType := extractFindingType(*vuln.Name)
+		if findingType == "" {
+			log.Debug().Msg("No finding type found.")
+			break
+		}
+
+		identifiers[FindingIdentifierType(findingType)] = findingType
+		log.Debug().Any("identifiers", identifiers).Msg("Processing finding.")
+
+		finding := project.GetFinding(identifiers)
+
+		if vuln.Description != nil {
+			finding.Description = *vuln.Description
+		}
+
+		packageName := extractPackageName(vuln.Attributes)
+		if packageName != "" {
+			finding.PackageName = packageName
+		}
+
+		finding.Severity = ecrSeverities[string(vuln.Severity)]
 	}
 
 	return nil
 }
 
+// Get a list of images in the repository
 func (adc *AwsDataSource) getLatestImage(repositoryName string) (*ecrTypes.ImageDetail, error) {
-	describeImagesParams := &ecr.DescribeImagesInput{
-		RepositoryName: &repositoryName,
-	}
+	var nextToken *string
+	var images []ecrTypes.ImageDetail
 
-	// Get a list of images in the repository
-	repoImages, err := adc.EcrClient.DescribeImages(adc.ctx, describeImagesParams)
-	if err != nil {
-		return nil, err
+	for {
+		describeImagesParams := &ecr.DescribeImagesInput{
+			RepositoryName: &repositoryName,
+			NextToken:      nextToken,
+		}
+
+		repoImages, err := adc.EcrClient.DescribeImages(adc.ctx, describeImagesParams)
+		if err != nil {
+			return nil, err
+		}
+
+		images = append(images, repoImages.ImageDetails...)
+
+		if repoImages.NextToken != nil {
+			nextToken = repoImages.NextToken
+		} else {
+			break
+		}
+
 	}
 
 	// Sort images by creation date (latest first)
-	sort.SliceStable(repoImages.ImageDetails, func(i, j int) bool {
-		return repoImages.ImageDetails[i].ImagePushedAt.After(*repoImages.ImageDetails[j].ImagePushedAt)
+	sort.SliceStable(images, func(i, j int) bool {
+		return images[i].ImagePushedAt.After(*images[j].ImagePushedAt)
 	})
 
 	// Return the latest image
-	if len(repoImages.ImageDetails) > 0 {
-		return &repoImages.ImageDetails[0], nil
+	if len(images) > 0 {
+		return &images[0], nil
 	}
 
 	return nil, fmt.Errorf("no images found in the repository")
@@ -210,4 +230,14 @@ func extractPackageName(attributes []ecrTypes.Attribute) string {
 		}
 	}
 	return ""
+}
+
+func extractLastImageTag(imageTags []string) (string, error) {
+	lastImageTagIndex := len(imageTags) - 1
+	if lastImageTagIndex >= 0 {
+		lastImageTag := imageTags[lastImageTagIndex]
+		return lastImageTag, nil
+	}
+
+	return "", fmt.Errorf("No image tag found.")
 }
