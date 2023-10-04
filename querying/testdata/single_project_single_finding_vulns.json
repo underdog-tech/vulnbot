@@ -1,33 +1,23 @@
 {
     "data": {
-        "organization": {
-            "repositories": {
+        "repository": {
+            "vulnerabilityAlerts": {
                 "totalCount": 1,
                 "pageInfo": { "hasNextPage": false },
                 "nodes": [
                     {
-                        "name": "zaphod",
-                        "url": "https://heart-of-gold/zaphod",
-                        "vulnerabilityAlerts": {
-                            "totalCount": 1,
-                            "pageInfo": { "hasNextPage": false },
-                            "nodes": [
-                                {
-                                    "securityAdvisory": {
-                                        "description": "The Improbability Drive is far too improbable.",
-                                        "identifiers": [
-                                            { "type": "CVE", "value": "CVE-42" }
-                                        ]
-                                    },
-                                    "securityVulnerability": {
-                                        "severity": "CRITICAL",
-                                        "package": {
-                                            "ecosystem": "GO",
-                                            "name": "improbability-drive"
-                                        }
-                                    }
-                                }
+                        "securityAdvisory": {
+                            "description": "The Improbability Drive is far too improbable.",
+                            "identifiers": [
+                                { "type": "CVE", "value": "CVE-42" }
                             ]
+                        },
+                        "securityVulnerability": {
+                            "severity": "CRITICAL",
+                            "package": {
+                                "ecosystem": "GO",
+                                "name": "improbability-drive"
+                            }
                         }
                     }
                 ]
