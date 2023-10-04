@@ -37,32 +37,39 @@ func NewGithubDataSource(conf config.Config, env config.Env) GithubDataSource {
 	}
 }
 
-type orgRepo struct {
-	Name                string
-	Url                 string
-	VulnerabilityAlerts struct {
-		TotalCount int
-		PageInfo   struct {
-			EndCursor   githubv4.String
-			HasNextPage bool
+type githubVulnerability struct {
+	SecurityAdvisory struct {
+		Description string
+		Identifiers []struct {
+			Type  string
+			Value string
 		}
-		Nodes []struct {
-			SecurityAdvisory struct {
-				Description string
-				Identifiers []struct {
-					Type  string
-					Value string
-				}
-			}
-			SecurityVulnerability struct {
-				Severity string
-				Package  struct {
-					Ecosystem string
-					Name      string
-				}
-			}
+	}
+	SecurityVulnerability struct {
+		Severity string
+		Package  struct {
+			Ecosystem string
+			Name      string
 		}
-	} `graphql:"vulnerabilityAlerts(states: OPEN, first: 100, after: $alertCursor)"`
+	}
+}
+
+type repository struct {
+	Name string
+	Url  string
+}
+
+type repositoryQuery struct {
+	Repository struct {
+		VulnerabilityAlerts struct {
+			TotalCount int
+			PageInfo   struct {
+				EndCursor   githubv4.String
+				HasNextPage bool
+			}
+			Nodes []githubVulnerability
+		} `graphql:"vulnerabilityAlerts(states: OPEN, first: 5, after: $alertCursor)"`
+	} `graphql:"repository(name: $repoName, owner: $orgName)"`
 }
 
 type orgVulnerabilityQuery struct {
@@ -75,7 +82,7 @@ type orgVulnerabilityQuery struct {
 				EndCursor   githubv4.String
 				HasNextPage bool
 			}
-			Nodes []orgRepo
+			Nodes []repository
 		} `graphql:"repositories(orderBy: {field: NAME, direction: ASC}, isFork: false, isArchived: false, first: 100, after: $repoCursor)"`
 	} `graphql:"organization(login: $login)"`
 }
@@ -111,7 +118,6 @@ func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *syn
 	queryVars := map[string]interface{}{
 		"login":       githubv4.String(gh.orgName),
 		"repoCursor":  (*githubv4.String)(nil), // We pass nil/null to get the first page
-		"alertCursor": (*githubv4.String)(nil),
 	}
 
 	for {
@@ -122,7 +128,7 @@ func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *syn
 			return err
 		}
 		for _, repo := range alertQuery.Organization.Repositories.Nodes {
-			err := gh.processRepoFindings(projects, repo, queryVars["repoCursor"].(*githubv4.String))
+			err := gh.processRepoFindings(projects, repo)
 			if err != nil {
 				log.Warn().Err(err).Str("repository", repo.Name).Msg("Failed to process findings for repository.")
 			}
@@ -137,36 +143,57 @@ func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *syn
 	return nil
 }
 
-func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, repo orgRepo, repoCursor *githubv4.String) error {
+func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, repo repository) error {
 	log := logger.Get()
 	project := projects.GetProject(repo.Name)
 	project.Links["GitHub"] = repo.Url
 	log.Debug().Str("project", project.Name).Msg("Processing findings for project.")
-	// TODO: Handle pagination of vulnerabilityAlerts
-	for _, vuln := range repo.VulnerabilityAlerts.Nodes {
-		identifiers := FindingIdentifierMap{}
-		for _, id := range vuln.SecurityAdvisory.Identifiers {
-			identifiers[FindingIdentifierType(id.Type)] = id.Value
-		}
-		log.Debug().Any("identifiers", identifiers).Msg("Processing finding.")
-		// Utilizing a lambda to account for locks/deferrals
-		func() {
-			finding := project.GetFinding(identifiers)
-			finding.mu.Lock()
-			defer finding.mu.Unlock()
 
-			if finding.Description == "" {
-				finding.Description = vuln.SecurityAdvisory.Description
-			}
-			if finding.Ecosystem == "" {
-				finding.Ecosystem = githubEcosystems[vuln.SecurityVulnerability.Package.Ecosystem]
-			}
-			if finding.PackageName == "" {
-				finding.PackageName = vuln.SecurityVulnerability.Package.Name
-			}
-			finding.Severity = githubSeverities[vuln.SecurityVulnerability.Severity]
-		}()
+	var vulnerabilityQuery repositoryQuery
+	queryVars := map[string]interface{}{
+		"repoName":    githubv4.String(repo.Name),
+		"orgName":     githubv4.String(gh.orgName),
+		"alertCursor": (*githubv4.String)(nil),
 	}
+
+	for {
+		log.Info().Any("repoCursor", queryVars["repoCursor"]).Msg("Querying vulnerabilities for a repository.")
+		err := gh.GhClient.Query(gh.ctx, &vulnerabilityQuery, queryVars)
+		if err != nil {
+			return err
+		}
+
+		for _, vuln := range vulnerabilityQuery.Repository.VulnerabilityAlerts.Nodes {
+			identifiers := FindingIdentifierMap{}
+			for _, id := range vuln.SecurityAdvisory.Identifiers {
+				identifiers[FindingIdentifierType(id.Type)] = id.Value
+			}
+			log.Debug().Any("identifiers", identifiers).Msg("Processing finding.")
+			// Utilizing a lambda to account for locks/deferrals
+			func() {
+				finding := project.GetFinding(identifiers)
+				finding.mu.Lock()
+				defer finding.mu.Unlock()
+
+				if finding.Description == "" {
+					finding.Description = vuln.SecurityAdvisory.Description
+				}
+				if finding.Ecosystem == "" {
+					finding.Ecosystem = githubEcosystems[vuln.SecurityVulnerability.Package.Ecosystem]
+				}
+				if finding.PackageName == "" {
+					finding.PackageName = vuln.SecurityVulnerability.Package.Name
+				}
+				finding.Severity = githubSeverities[vuln.SecurityVulnerability.Severity]
+			}()
+		}
+
+		if !vulnerabilityQuery.Repository.VulnerabilityAlerts.PageInfo.HasNextPage {
+			break
+		}
+		queryVars["alertCursor"] = githubv4.NewString(vulnerabilityQuery.Repository.VulnerabilityAlerts.PageInfo.EndCursor)
+	}
+
 	return nil
 }
 
