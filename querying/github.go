@@ -186,7 +186,7 @@ func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, rep
 			return err
 		}
 
-		log.Info().Any("alertCursor", queryVars["alertCursor"]).Msg("Querying for more vulnerabilities for a repository.")
+		log.Info().Str("repoName", repo.Name).Any("alertCursor", queryVars["alertCursor"]).Msg("Querying for more vulnerabilities for a repository.")
 		return gh.processRepoFindings(projects, repoQuery.Repository)
 	}
 
