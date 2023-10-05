@@ -60,7 +60,7 @@ func getTestProject() querying.ProjectCollection {
 func TestCollectFindingsSingleProjectSingleFinding(t *testing.T) {
 	server := getTestServer(
 		"testdata/single_project_single_finding_vulns.json",
-		"testdata/single_project_single_owner.json",
+		"testdata/single_project_no_owners.json",
 	)
 	defer server.Close()
 
