@@ -128,7 +128,7 @@ func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *syn
 			return err
 		}
 		for _, repo := range alertQuery.Organization.Repositories.Nodes {
-			err := gh.processRepoFindings(projects, repo, repo.VulnerabilityAlerts.PageInfo.EndCursor)
+			err := gh.processRepoFindings(projects, repo)
 			if err != nil {
 				log.Warn().Err(err).Str("repository", repo.Name).Msg("Failed to process findings for repository.")
 			}
