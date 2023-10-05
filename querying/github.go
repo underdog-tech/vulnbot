@@ -37,6 +37,23 @@ func NewGithubDataSource(conf config.Config, env config.Env) GithubDataSource {
 	}
 }
 
+type githubVulnerability struct {
+	SecurityAdvisory struct {
+		Description string
+		Identifiers []struct {
+			Type  string
+			Value string
+		}
+	}
+	SecurityVulnerability struct {
+		Severity string
+		Package  struct {
+			Ecosystem string
+			Name      string
+		}
+	}
+}
+
 type orgRepo struct {
 	Name                string
 	Url                 string
@@ -46,23 +63,12 @@ type orgRepo struct {
 			EndCursor   githubv4.String
 			HasNextPage bool
 		}
-		Nodes []struct {
-			SecurityAdvisory struct {
-				Description string
-				Identifiers []struct {
-					Type  string
-					Value string
-				}
-			}
-			SecurityVulnerability struct {
-				Severity string
-				Package  struct {
-					Ecosystem string
-					Name      string
-				}
-			}
-		}
+		Nodes []githubVulnerability
 	} `graphql:"vulnerabilityAlerts(states: OPEN, first: 100, after: $alertCursor)"`
+}
+
+type repositoryQuery struct {
+	Repository orgRepo `graphql:"repository(name: $repoName, owner: $orgName)"`
 }
 
 type orgVulnerabilityQuery struct {
@@ -122,7 +128,7 @@ func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *syn
 			return err
 		}
 		for _, repo := range alertQuery.Organization.Repositories.Nodes {
-			err := gh.processRepoFindings(projects, repo, queryVars["repoCursor"].(*githubv4.String))
+			err := gh.processRepoFindings(projects, repo)
 			if err != nil {
 				log.Warn().Err(err).Str("repository", repo.Name).Msg("Failed to process findings for repository.")
 			}
@@ -137,12 +143,12 @@ func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *syn
 	return nil
 }
 
-func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, repo orgRepo, repoCursor *githubv4.String) error {
+func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, repo orgRepo) error {
 	log := logger.Get()
 	project := projects.GetProject(repo.Name)
 	project.Links["GitHub"] = repo.Url
 	log.Debug().Str("project", project.Name).Msg("Processing findings for project.")
-	// TODO: Handle pagination of vulnerabilityAlerts
+
 	for _, vuln := range repo.VulnerabilityAlerts.Nodes {
 		identifiers := FindingIdentifierMap{}
 		for _, id := range vuln.SecurityAdvisory.Identifiers {
@@ -167,6 +173,23 @@ func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, rep
 			finding.Severity = githubSeverities[vuln.SecurityVulnerability.Severity]
 		}()
 	}
+
+	if repo.VulnerabilityAlerts.PageInfo.HasNextPage {
+		var repoQuery repositoryQuery
+		queryVars := map[string]interface{}{
+			"repoName":    githubv4.String(repo.Name),
+			"orgName":     githubv4.String(gh.orgName),
+			"alertCursor": githubv4.String(repo.VulnerabilityAlerts.PageInfo.EndCursor),
+		}
+		err := gh.GhClient.Query(gh.ctx, &repoQuery, queryVars)
+		if err != nil {
+			return err
+		}
+
+		log.Info().Str("repoName", repo.Name).Any("alertCursor", queryVars["alertCursor"]).Msg("Querying for more vulnerabilities for a repository.")
+		return gh.processRepoFindings(projects, repoQuery.Repository)
+	}
+
 	return nil
 }
 
