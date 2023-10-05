@@ -16,19 +16,16 @@ import (
 	"github.com/underdog-tech/vulnbot/querying"
 )
 
-func getTestServer(findingFile string, ownerFile string, orgFile string) *httptest.Server {
+func getTestServer(findingFile string, ownerFile string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var bodyJson map[string]string
 		var data []byte
 		_ = json.NewDecoder(r.Body).Decode(&bodyJson)
 		vulnQuery := strings.Contains(bodyJson["query"], "vulnerabilityAlerts")
-		teamQuery := strings.Contains(bodyJson["query"], "teams")
 		if vulnQuery {
 			data, _ = os.ReadFile(findingFile)
-		} else if teamQuery {
-			data, _ = os.ReadFile(ownerFile)
 		} else {
-			data, _ = os.ReadFile(orgFile)
+			data, _ = os.ReadFile(ownerFile)
 		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(data))
@@ -64,7 +61,6 @@ func TestCollectFindingsSingleProjectSingleFinding(t *testing.T) {
 	server := getTestServer(
 		"testdata/single_project_single_finding_vulns.json",
 		"testdata/single_project_single_owner.json",
-		"testdata/organization.json",
 	)
 	defer server.Close()
 
@@ -95,7 +91,6 @@ func TestCollectFindingsOwnerNotConfigured(t *testing.T) {
 	server := getTestServer(
 		"testdata/single_project_single_finding_vulns.json",
 		"testdata/single_project_single_owner.json",
-		"testdata/organization.json",
 	)
 	defer server.Close()
 
@@ -122,7 +117,6 @@ func TestCollectFindingsOwnerIsConfigured(t *testing.T) {
 	server := getTestServer(
 		"testdata/single_project_single_finding_vulns.json",
 		"testdata/single_project_single_owner.json",
-		"testdata/organization.json",
 	)
 	defer server.Close()
 
@@ -158,7 +152,6 @@ func TestCollectFindingsMultipleFindings(t *testing.T) {
 	server := getTestServer(
 		"testdata/single_project_multiple_findings.json",
 		"testdata/single_project_no_owners.json",
-		"testdata/organization.json",
 	)
 	defer server.Close()
 
