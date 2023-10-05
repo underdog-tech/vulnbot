@@ -143,7 +143,7 @@ func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *syn
 	return nil
 }
 
-func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, repo orgRepo, endCursor githubv4.String) error {
+func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, repo orgRepo) error {
 	log := logger.Get()
 	project := projects.GetProject(repo.Name)
 	project.Links["GitHub"] = repo.Url
@@ -175,20 +175,19 @@ func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, rep
 	}
 
 	if repo.VulnerabilityAlerts.PageInfo.HasNextPage {
-		var repositoryQuery repositoryQuery
+		var repoQuery repositoryQuery
 		queryVars := map[string]interface{}{
 			"repoName":    githubv4.String(repo.Name),
 			"orgName":     githubv4.String(gh.orgName),
-			"alertCursor": githubv4.String(endCursor),
+			"alertCursor": githubv4.String(repo.VulnerabilityAlerts.PageInfo.EndCursor),
 		}
-		err := gh.GhClient.Query(gh.ctx, &repositoryQuery, queryVars)
+		err := gh.GhClient.Query(gh.ctx, &repoQuery, queryVars)
 		if err != nil {
 			return err
 		}
 
-		nextCursor := repositoryQuery.Repository.VulnerabilityAlerts.PageInfo.EndCursor
 		log.Info().Any("alertCursor", queryVars["alertCursor"]).Msg("Querying for more vulnerabilities for a repository.")
-		return gh.processRepoFindings(projects, repositoryQuery.Repository, nextCursor)
+		return gh.processRepoFindings(projects, repoQuery.Repository)
 	}
 
 	return nil
