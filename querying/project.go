@@ -15,6 +15,15 @@ type ProjectCollection struct {
 	mu       sync.Mutex
 }
 
+// A Project represents a single project which contains findings.
+//
+// Examples of a Project would be a GitHub repository, or an Amazon ECR image.
+//
+// Links represents where the Project can be found. For example, if a Project
+// exists in a GitHub repository, then it would contain a Links entry with a
+// key of "GitHub" and value of "https://github.com/org-name/project-name".
+// These links are meant to be displayed out by reporters, to give users quick
+// access to the projects and their findings.
 type Project struct {
 	Name     string
 	Findings []*Finding

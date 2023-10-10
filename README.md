@@ -13,10 +13,11 @@ appropriate systems.
 
 Our currently supported data sources are:
 
-* GitHub
+* GitHub (Dependabot)
 
 Our currently supported reporting systems are:
 
+* Console
 * Slack
 
 ## Getting Started
@@ -49,3 +50,9 @@ docker run --env-file .env -v ./config.toml:/app/config.toml vulnbot
 
 Building and running a Docker image would be helpful if, for example, you wanted
 to run this as part of a regularly scheduled CI/CD job.
+
+## Documentation
+
+At the moment, our documentation consists primarily of developer and
+architecture docs. These can be found in the [docs/](docs/) folder, as well as
+at <https://pkg.go.dev/github.com/underdog-tech/vulnbot>.
