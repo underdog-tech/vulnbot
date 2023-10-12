@@ -18,6 +18,7 @@ type TeamConfig struct {
 
 type Config struct {
 	Default_slack_channel string
+	Disable_slack         bool
 	Github_org            string
 	Slack_auth_token      string
 	Github_token          string

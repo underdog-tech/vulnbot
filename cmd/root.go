@@ -46,7 +46,7 @@ func Execute() {
 
 func init() {
 	persistent := rootCmd.PersistentFlags()
-	persistent.BoolP("disable-slack", "d", false, "Disable Slack alerts.")
+	persistent.BoolP("disable_slack", "d", false, "Disable Slack alerts.")
 
 	persistent.StringP("config", "c", "config.toml", "Config file path.")
 
