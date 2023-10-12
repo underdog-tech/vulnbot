@@ -14,30 +14,16 @@ import (
 func Scan(cmd *cobra.Command, args []string) {
 	log := logger.Get()
 
-	// Load the configuration file
+	// Load the configuration from file, CLI, and env
 	configPath := getString(cmd.Flags(), "config")
-	userConfig := config.Config{}
-	err := config.LoadConfig(config.ViperParams{
-		Output:     &userConfig,
-		ConfigPath: &configPath,
-	})
+	cfg, err := config.GetUserConfig(configPath)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load configuration.")
+		log.Fatal().Err(err).Msg("Failed to load configuration.")
 	}
-
-	// Load ENV file
-	env := config.Env{}
-	envFileName := ".env"
-	err = config.LoadEnv(config.ViperParams{
-		Output:      &env,
-		EnvFileName: &envFileName,
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to load ENV file.")
-	}
+	log.Trace().Any("viperConfig", &cfg).Msg("Unified Viper config")
 
 	// Load and query all configured data sources
-	dataSources := GetDataSources(env, userConfig)
+	dataSources := GetDataSources(&cfg)
 
 	projects := QueryAllDataSources(&dataSources)
 
@@ -47,24 +33,21 @@ func Scan(cmd *cobra.Command, args []string) {
 	teamSummaries := reporting.GroupTeamFindings(projects, projectSummaries)
 
 	// Load and report out to all configured reporters
-	slackToken := env.SlackAuthToken
-
 	reporters := []reporting.Reporter{}
 
-	disableSlack := getBool(cmd.Flags(), "disable-slack")
-	if !disableSlack {
-		slackReporter, err := reporting.NewSlackReporter(userConfig, slackToken)
+	if !cfg.Disable_slack {
+		slackReporter, err := reporting.NewSlackReporter(&cfg)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create Slack reporter.")
 		} else {
 			reporters = append(reporters, &slackReporter)
 		}
 	}
-	reporters = append(reporters, &reporting.ConsoleReporter{Config: userConfig})
 
+	reporters = append(reporters, &reporting.ConsoleReporter{Config: &cfg})
 	reportTime := time.Now().UTC()
-
 	wg := new(sync.WaitGroup)
+
 	for _, reporter := range reporters {
 		wg.Add(2)
 		go func(currentReporter reporting.Reporter) {

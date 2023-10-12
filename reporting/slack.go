@@ -17,7 +17,7 @@ import (
 )
 
 type SlackReporter struct {
-	Config config.Config
+	Config *config.Config
 	client SlackClientInterface
 }
 
@@ -248,10 +248,10 @@ func (s *SlackReporter) sendSlackMessage(channel string, message slack.MsgOption
 }
 
 // NewSlackReporter returns a new SlackReporter instance for reporting out findings to a Slack server
-func NewSlackReporter(config config.Config, slackToken string) (SlackReporter, error) {
-	if slackToken == "" {
+func NewSlackReporter(cfg *config.Config) (SlackReporter, error) {
+	if cfg.Slack_auth_token == "" {
 		return SlackReporter{}, fmt.Errorf("No Slack token was provided.")
 	}
-	client := slack.New(slackToken, slack.OptionDebug(true))
-	return SlackReporter{Config: config, client: client}, nil
+	client := slack.New(cfg.Slack_auth_token, slack.OptionDebug(true))
+	return SlackReporter{Config: cfg, client: client}, nil
 }

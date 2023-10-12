@@ -14,7 +14,7 @@ import (
 )
 
 type ConsoleReporter struct {
-	Config config.Config
+	Config *config.Config
 }
 
 // SendSummaryReport generates a brief report summarizing all the discovered

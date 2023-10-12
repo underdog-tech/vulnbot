@@ -8,11 +8,11 @@ import (
 	"github.com/underdog-tech/vulnbot/querying"
 )
 
-func GetDataSources(env config.Env, cfg config.Config) []querying.DataSource {
+func GetDataSources(cfg *config.Config) []querying.DataSource {
 	dataSources := []querying.DataSource{}
 
-	if env.GithubToken != "" {
-		ghds := querying.NewGithubDataSource(cfg, env)
+	if cfg.Github_token != "" {
+		ghds := querying.NewGithubDataSource(cfg)
 		dataSources = append(dataSources, &ghds)
 	}
 
