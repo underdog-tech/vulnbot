@@ -18,6 +18,11 @@ type TeamConfig struct {
 
 type Config struct {
 	Default_slack_channel string
+	Github_org            string
+	Slack_auth_token      string
+	Github_token          string
+	Quiet                 bool
+	Verbose               int
 	Severity              []SeverityConfig
 	Ecosystem             []EcosystemConfig
 	Team                  []TeamConfig
@@ -42,6 +47,43 @@ func getViper() *viper.Viper {
 		viperClient = viper.New()
 	}
 	return viperClient
+}
+
+func GetUserConfig(configFile string) (Config, error) {
+	log := logger.Get()
+
+	userCfg := Config{}
+
+	// Set up env var overrides
+	replacer := strings.NewReplacer("-", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	viper.SetEnvPrefix("vulnbot")
+	viper.AutomaticEnv()
+
+	// Load the main config file
+	viper.SetConfigFile(configFile)
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Fatal().Str("config", configFile).Err(err).Msg("Config file not found.")
+		} else {
+			log.Fatal().Err(err).Msg("Error reading config file.")
+		}
+	}
+	viper.Unmarshal(&userCfg)
+
+	// (Optionally) Load a .env file
+	viper.SetConfigFile("./.env")
+	viper.SetConfigType("env")
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Warn().Msg("No .env file found; not loaded.")
+		} else {
+			log.Error().Err(err).Msg("Error loading .env file.")
+		}
+	}
+	viper.Unmarshal(&userCfg)
+
+	return userCfg, nil
 }
 
 func LoadConfig(params ViperParams) error {
