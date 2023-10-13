@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/underdog-tech/vulnbot/logger"
@@ -85,61 +84,6 @@ func GetUserConfig(configFile string) (Config, error) {
 	viper.Unmarshal(&userCfg)
 
 	return userCfg, nil
-}
-
-func LoadConfig(params ViperParams) error {
-	log := logger.Get()
-
-	v := getViper()
-
-	filename := filepath.Base(*params.ConfigPath)
-	extension := filepath.Ext(*params.ConfigPath)
-	configDir := filepath.Dir(*params.ConfigPath)
-
-	v.SetConfigName(filename)
-	v.AddConfigPath(configDir)
-	v.SetConfigType(strings.TrimLeft(extension, "."))
-
-	err := v.ReadInConfig()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to read config.")
-		return err
-	}
-
-	err = v.Unmarshal(&params.Output)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
-		return err
-	}
-
-	log.Debug().Any("config", params.Output).Msg("Config loaded.")
-	return nil
-}
-
-func LoadEnv(params ViperParams) error {
-	log := logger.Get()
-
-	v := getViper()
-
-	// Read in environment variables that match
-	v.SetConfigFile(*params.EnvFileName)
-	v.SetConfigType("env")
-	v.AutomaticEnv()
-
-	err := v.ReadInConfig()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to read ENV file.")
-		return err
-	}
-
-	err = v.Unmarshal(&params.Output)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to unmarshal ENV.")
-		return err
-	}
-
-	log.Debug().Any("env", params.Output).Msg("ENV loaded.")
-	return nil
 }
 
 func GetIconForSeverity(severity FindingSeverityType, severities []SeverityConfig) (string, error) {
