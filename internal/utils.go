@@ -24,13 +24,6 @@ func getString(flags *pflag.FlagSet, flag string) string {
 	return s
 }
 
-// getStringSlice return the []string value of a flag with the given name
-func getStringSlice(flags *pflag.FlagSet, flag string) []string {
-	s, err := flags.GetStringSlice(flag)
-	checkErr(err)
-	return s
-}
-
 // GetProjectRootDir retrieves the root directory of the project
 func GetProjectRootDir() string {
 	// Retrieve information about the caller
