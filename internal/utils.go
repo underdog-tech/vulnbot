@@ -39,14 +39,3 @@ func GetProjectRootDir() string {
 	parentDir := filepath.Dir(callerDir)
 	return parentDir
 }
-
-// stringInSlice checks if a string exists in a slice of strings.
-// It returns true if the string is found in the slice, and false otherwise.
-func stringInSlice(s string, slice []string) bool {
-    for _, item := range slice {
-        if item == s {
-            return true
-        }
-    }
-    return false
-}
