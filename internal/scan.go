@@ -20,7 +20,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load configuration.")
 	}
-	log.Trace().Any("viperConfig", &cfg).Msg("Unified Viper config")
+	log.Trace().Msg("Loaded unified Viper config")
 
 	// Load and query all configured data sources
 	dataSources := GetDataSources(&cfg)

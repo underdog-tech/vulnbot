@@ -79,7 +79,7 @@ func GetUserConfig(configFile string) (Config, error) {
 	viper.AutomaticEnv()
 
 	// Finally, copy all loaded values into the config object
-	viper.Unmarshal(&userCfg)
+	_ = viper.Unmarshal(&userCfg)
 
 	return userCfg, nil
 }

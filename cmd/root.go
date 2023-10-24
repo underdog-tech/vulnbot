@@ -53,6 +53,6 @@ func init() {
 	persistent.BoolP("quiet", "q", false, "Suppress all console output. (Mutually exclusive with 'verbose'.)")
 	persistent.CountP("verbose", "v", "More verbose output. Specifying multiple times increases verbosity. (Mutually exclusive with 'quiet'.)")
 
-	viper.BindPFlags(persistent)
+	_ = viper.BindPFlags(persistent)
 	rootCmd.MarkFlagsMutuallyExclusive("verbose", "quiet")
 }
