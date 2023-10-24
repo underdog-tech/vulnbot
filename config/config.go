@@ -2,7 +2,8 @@ package config
 
 import (
 	"fmt"
-	"path/filepath"
+	"os"
+	"reflect"
 	"strings"
 
 	"github.com/underdog-tech/vulnbot/logger"
@@ -18,85 +19,69 @@ type TeamConfig struct {
 
 type Config struct {
 	Default_slack_channel string
+	Disable_slack         bool
+	Github_org            string
+	Slack_auth_token      string
+	Github_token          string
+	Quiet                 bool
+	Verbose               int
 	Severity              []SeverityConfig
 	Ecosystem             []EcosystemConfig
 	Team                  []TeamConfig
 }
 
-type Env struct {
-	GithubOrg      string `mapstructure:"GITHUB_ORG"`
-	SlackAuthToken string `mapstructure:"SLACK_AUTH_TOKEN"`
-	GithubToken    string `mapstructure:"GITHUB_TOKEN"`
-}
-
-var viperClient *viper.Viper
-
-type ViperParams struct {
-	ConfigPath  *string
-	Output      interface{}
-	EnvFileName *string
-}
-
-func getViper() *viper.Viper {
-	if viperClient == nil {
-		viperClient = viper.New()
+func fileExists(fname string) bool {
+	if _, err := os.Stat(fname); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
 	}
-	return viperClient
+	return true
 }
 
-func LoadConfig(params ViperParams) error {
+func GetUserConfig(configFile string) (Config, error) {
 	log := logger.Get()
 
-	v := getViper()
+	userCfg := Config{}
 
-	filename := filepath.Base(*params.ConfigPath)
-	extension := filepath.Ext(*params.ConfigPath)
-	configDir := filepath.Dir(*params.ConfigPath)
+	// Use reflection to register all config fields in Viper to set up defaults
+	cfgFields := reflect.ValueOf(userCfg)
+	cfgType := cfgFields.Type()
 
-	v.SetConfigName(filename)
-	v.AddConfigPath(configDir)
-	v.SetConfigType(strings.TrimLeft(extension, "."))
-
-	err := v.ReadInConfig()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to read config.")
-		return err
+	for i := 0; i < cfgFields.NumField(); i++ {
+		viper.SetDefault(cfgType.Field(i).Name, cfgFields.Field(i).Interface())
 	}
 
-	err = v.Unmarshal(&params.Output)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to unmarshal config.")
-		return err
+	// Load the main config file
+	if !fileExists(configFile) {
+		log.Fatal().Str("config", configFile).Msg("Config file not found.")
+	}
+	viper.SetConfigFile(configFile)
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatal().Err(err).Msg("Error reading config file.")
 	}
 
-	log.Debug().Any("config", params.Output).Msg("Config loaded.")
-	return nil
-}
-
-func LoadEnv(params ViperParams) error {
-	log := logger.Get()
-
-	v := getViper()
-
-	// Read in environment variables that match
-	v.SetConfigFile(*params.EnvFileName)
-	v.SetConfigType("env")
-	v.AutomaticEnv()
-
-	err := v.ReadInConfig()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to read ENV file.")
-		return err
+	// (Optionally) Load a .env file
+	if fileExists("./.env") {
+		viper.SetConfigFile("./.env")
+		viper.SetConfigType("env")
+		if err := viper.ReadInConfig(); err != nil {
+			log.Error().Err(err).Msg("Error loading .env file.")
+		}
+	} else {
+		log.Warn().Msg("No .env file found; not loaded.")
 	}
 
-	err = v.Unmarshal(&params.Output)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to unmarshal ENV.")
-		return err
-	}
+	// Set up env var overrides
+	replacer := strings.NewReplacer("-", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	viper.SetEnvPrefix("vulnbot")
+	viper.AutomaticEnv()
 
-	log.Debug().Any("env", params.Output).Msg("ENV loaded.")
-	return nil
+	// Finally, copy all loaded values into the config object
+	_ = viper.Unmarshal(&userCfg)
+
+	return userCfg, nil
 }
 
 func GetIconForSeverity(severity FindingSeverityType, severities []SeverityConfig) (string, error) {

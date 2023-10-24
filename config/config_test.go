@@ -69,38 +69,29 @@ func getCurrentDir() (string, error) {
 	return cwd, nil
 }
 
-func TestLoadConfig(t *testing.T) {
-	expectedSlackChannel := "testing_slack_channel"
+func TestGetUserConfigFromFile(t *testing.T) {
 	currentDir, err := getCurrentDir()
-	if err != nil {
-		assert.Error(t, err)
-	}
+	assert.Nil(t, err)
 	testDataPath := filepath.Join(currentDir, "/testdata/test_config.toml")
-
-	var cfg config.Config
-	_ = config.LoadConfig(config.ViperParams{
-		Output:     &cfg,
-		ConfigPath: &testDataPath,
-	})
-
-	assert.IsType(t, config.Config{}, cfg)
-	assert.Equal(t, expectedSlackChannel, cfg.Default_slack_channel)
+	cfg, err := config.GetUserConfig(testDataPath)
+	assert.Nil(t, err)
+	assert.Equal(t, "testing_slack_channel", cfg.Default_slack_channel)
+	assert.Equal(t, []config.EcosystemConfig{{Label: "Go", Slack_emoji: ":golang:"}}, cfg.Ecosystem)
 }
 
-func TestLoadEnv(t *testing.T) {
-	expectedSlackAuthToken := "testing"
+func TestGetUserConfigFromEnv(t *testing.T) {
+	t.Setenv("VULNBOT_DISABLE_SLACK", "1")
+	t.Setenv("VULNBOT_GITHUB_ORG", "hitchhikers")
+	// This should override the config file
+	t.Setenv("VULNBOT_DEFAULT_SLACK_CHANNEL", "other_slack_channel")
+
 	currentDir, err := getCurrentDir()
-	if err != nil {
-		assert.Error(t, err)
-	}
-	testDataPath := filepath.Join(currentDir, "/testdata/config.env")
+	assert.Nil(t, err)
+	testDataPath := filepath.Join(currentDir, "/testdata/test_config.toml")
+	cfg, err := config.GetUserConfig(testDataPath)
+	assert.Nil(t, err)
 
-	var env config.Env
-	_ = config.LoadEnv(config.ViperParams{
-		EnvFileName: &testDataPath,
-		Output:      &env,
-	})
-
-	assert.IsType(t, config.Env{}, env)
-	assert.Equal(t, expectedSlackAuthToken, env.SlackAuthToken)
+	assert.True(t, cfg.Disable_slack)
+	assert.Equal(t, "hitchhikers", cfg.Github_org)
+	assert.Equal(t, "other_slack_channel", cfg.Default_slack_channel)
 }

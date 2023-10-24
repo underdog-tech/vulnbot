@@ -17,13 +17,6 @@ func checkErr(err error) {
 	}
 }
 
-// getBool return the bool value of a flag with the given name
-func getBool(flags *pflag.FlagSet, flag string) bool {
-	b, err := flags.GetBool(flag)
-	checkErr(err)
-	return b
-}
-
 // getString return the string value of a flag with the given name
 func getString(flags *pflag.FlagSet, flag string) string {
 	s, err := flags.GetString(flag)

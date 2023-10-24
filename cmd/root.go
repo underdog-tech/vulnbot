@@ -1,13 +1,11 @@
 package cmd
 
 import (
-	"path/filepath"
-
 	"github.com/rs/zerolog"
-	"github.com/underdog-tech/vulnbot/internal"
 	"github.com/underdog-tech/vulnbot/logger"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -48,12 +46,13 @@ func Execute() {
 
 func init() {
 	persistent := rootCmd.PersistentFlags()
-	persistent.BoolP("disable-slack", "d", false, "Disable Slack alerts.")
+	persistent.BoolP("disable_slack", "d", false, "Disable Slack alerts.")
 
-	projectRootDir := internal.GetProjectRootDir()
-	persistent.StringP("config", "c", filepath.Join(projectRootDir, "config.toml"), "Config file path.")
+	persistent.StringP("config", "c", "config.toml", "Config file path.")
 
 	persistent.BoolP("quiet", "q", false, "Suppress all console output. (Mutually exclusive with 'verbose'.)")
 	persistent.CountP("verbose", "v", "More verbose output. Specifying multiple times increases verbosity. (Mutually exclusive with 'quiet'.)")
+
+	_ = viper.BindPFlags(persistent)
 	rootCmd.MarkFlagsMutuallyExclusive("verbose", "quiet")
 }

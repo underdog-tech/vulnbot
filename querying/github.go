@@ -18,20 +18,20 @@ type githubClient interface {
 type GithubDataSource struct {
 	GhClient githubClient
 	orgName  string
-	conf     config.Config
+	conf     *config.Config
 	ctx      context.Context
 }
 
-func NewGithubDataSource(conf config.Config, env config.Env) GithubDataSource {
+func NewGithubDataSource(conf *config.Config) GithubDataSource {
 	ghTokenSource := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: env.GithubToken},
+		&oauth2.Token{AccessToken: conf.Github_token},
 	)
 	httpClient := oauth2.NewClient(context.Background(), ghTokenSource)
 	ghClient := githubv4.NewClient(httpClient)
 
 	return GithubDataSource{
 		GhClient: ghClient,
-		orgName:  env.GithubOrg,
+		orgName:  conf.Github_org,
 		conf:     conf,
 		ctx:      context.Background(),
 	}
