@@ -65,11 +65,10 @@ func TestCollectFindingsSingleProjectSingleFinding(t *testing.T) {
 	defer server.Close()
 
 	conf := config.Config{}
-	env := config.Env{}
-	env.GithubOrg = "heart-of-gold"
-	env.GithubToken = "pangalactic-gargleblaster"
+	conf.Github_org = "heart-of-gold"
+	conf.Github_token = "pangalactic-gargleblaster"
 
-	ds := querying.NewGithubDataSource(conf, env)
+	ds := querying.NewGithubDataSource(&conf)
 	ds.GhClient = githubv4.NewEnterpriseClient(server.URL, &http.Client{})
 
 	projects := querying.NewProjectCollection()
@@ -95,11 +94,10 @@ func TestCollectFindingsOwnerNotConfigured(t *testing.T) {
 	defer server.Close()
 
 	conf := config.Config{}
-	env := config.Env{}
-	env.GithubOrg = "heart-of-gold"
-	env.GithubToken = "pangalactic-gargleblaster"
+	conf.Github_org = "heart-of-gold"
+	conf.Github_token = "pangalactic-gargleblaster"
 
-	ds := querying.NewGithubDataSource(conf, env)
+	ds := querying.NewGithubDataSource(&conf)
 	ds.GhClient = githubv4.NewEnterpriseClient(server.URL, &http.Client{})
 
 	projects := querying.NewProjectCollection()
@@ -127,11 +125,10 @@ func TestCollectFindingsOwnerIsConfigured(t *testing.T) {
 	conf := config.Config{
 		Team: []config.TeamConfig{crewTeam},
 	}
-	env := config.Env{}
-	env.GithubOrg = "heart-of-gold"
-	env.GithubToken = "pangalactic-gargleblaster"
+	conf.Github_org = "heart-of-gold"
+	conf.Github_token = "pangalactic-gargleblaster"
 
-	ds := querying.NewGithubDataSource(conf, env)
+	ds := querying.NewGithubDataSource(&conf)
 	ds.GhClient = githubv4.NewEnterpriseClient(server.URL, &http.Client{})
 
 	projects := querying.NewProjectCollection()
@@ -156,11 +153,10 @@ func TestCollectFindingsMultipleFindings(t *testing.T) {
 	defer server.Close()
 
 	conf := config.Config{}
-	env := config.Env{}
-	env.GithubOrg = "heart-of-gold"
-	env.GithubToken = "pangalactic-gargleblaster"
+	conf.Github_org = "heart-of-gold"
+	conf.Github_token = "pangalactic-gargleblaster"
 
-	ds := querying.NewGithubDataSource(conf, env)
+	ds := querying.NewGithubDataSource(&conf)
 	ds.GhClient = githubv4.NewEnterpriseClient(server.URL, &http.Client{})
 
 	projects := querying.NewProjectCollection()
