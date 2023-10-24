@@ -9,6 +9,7 @@ import (
 	"github.com/underdog-tech/vulnbot/reporting"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 )
 
 func Scan(cmd *cobra.Command, args []string) {
