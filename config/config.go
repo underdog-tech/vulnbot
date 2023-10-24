@@ -28,27 +28,6 @@ type Config struct {
 	Team                  []TeamConfig
 }
 
-type Env struct {
-	GithubOrg      string `mapstructure:"GITHUB_ORG"`
-	SlackAuthToken string `mapstructure:"SLACK_AUTH_TOKEN"`
-	GithubToken    string `mapstructure:"GITHUB_TOKEN"`
-}
-
-var viperClient *viper.Viper
-
-type ViperParams struct {
-	ConfigPath  *string
-	Output      interface{}
-	EnvFileName *string
-}
-
-func getViper() *viper.Viper {
-	if viperClient == nil {
-		viperClient = viper.New()
-	}
-	return viperClient
-}
-
 func GetUserConfig(configFile string) (Config, error) {
 	log := logger.Get()
 
