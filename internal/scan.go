@@ -36,7 +36,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	// Load and report out to all configured reporters
 	reporters := []reporting.Reporter{}
 
-	if !cfg.Disable_slack {
+	if slices.Contains(cfg.Reporters, "slack") {
 		slackReporter, err := reporting.NewSlackReporter(&cfg)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create Slack reporter.")

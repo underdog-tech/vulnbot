@@ -19,7 +19,6 @@ type TeamConfig struct {
 
 type Config struct {
 	Default_slack_channel string
-	Disable_slack         bool
 	Github_org            string
 	Slack_auth_token      string
 	Github_token          string
@@ -28,6 +27,7 @@ type Config struct {
 	Severity              []SeverityConfig
 	Ecosystem             []EcosystemConfig
 	Team                  []TeamConfig
+	Reporters             []string
 }
 
 func fileExists(fname string) bool {
