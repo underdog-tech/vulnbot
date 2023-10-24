@@ -1,4 +1,4 @@
-package reporting
+package reporting_test
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 	"github.com/gookit/color"
 	"github.com/stretchr/testify/assert"
 	"github.com/underdog-tech/vulnbot/config"
+	"github.com/underdog-tech/vulnbot/reporting"
 )
 
 func TestSendConsoleSummaryReport(t *testing.T) {
@@ -17,8 +18,8 @@ func TestSendConsoleSummaryReport(t *testing.T) {
 	reader, writer, _ := os.Pipe()
 	os.Stdout = writer
 
-	reporter := ConsoleReporter{Config: config.Config{}}
-	report := NewFindingSummary()
+	reporter := reporting.ConsoleReporter{Config: &config.Config{}}
+	report := reporting.NewFindingSummary()
 	report.AffectedRepos = 2
 	report.TotalCount = 42
 	report.VulnsByEcosystem[config.FindingEcosystemPython] = 2

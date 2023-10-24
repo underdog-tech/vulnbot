@@ -18,7 +18,7 @@ import (
 
 type SlackReporter struct {
 	Config *config.Config
-	client SlackClientInterface
+	Client SlackClientInterface
 }
 
 type SlackReport struct {
@@ -30,7 +30,7 @@ type SlackClientInterface interface {
 	PostMessage(channelID string, options ...slack.MsgOption) (string, string, error)
 }
 
-func (s *SlackReporter) buildSummaryReport(
+func (s *SlackReporter) BuildSummaryReport(
 	header string,
 	numRepos int,
 	report FindingSummary,
@@ -117,13 +117,13 @@ func (s *SlackReporter) SendSummaryReport(
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
-	summaryReport := s.buildSummaryReport(header, numRepos, report, reportTime)
+	summaryReport := s.BuildSummaryReport(header, numRepos, report, reportTime)
 	wg.Add(1)
-	go s.sendSlackMessage(s.Config.Default_slack_channel, slack.MsgOptionBlocks(summaryReport.Blocks.BlockSet...), wg)
+	go s.SendSlackMessage(s.Config.Default_slack_channel, slack.MsgOptionBlocks(summaryReport.Blocks.BlockSet...), wg)
 	return nil
 }
 
-func (s *SlackReporter) buildTeamRepositoryReport(
+func (s *SlackReporter) BuildTeamRepositoryReport(
 	repoReport *ProjectFindingSummary,
 ) *slack.SectionBlock {
 	var err error
@@ -155,7 +155,7 @@ func (s *SlackReporter) buildTeamRepositoryReport(
 	return slack.NewSectionBlock(nil, fields, nil)
 }
 
-func (s *SlackReporter) buildTeamReport(
+func (s *SlackReporter) BuildTeamReport(
 	teamInfo config.TeamConfig,
 	repos TeamProjectCollection,
 	reportTime time.Time,
@@ -176,7 +176,7 @@ func (s *SlackReporter) buildTeamReport(
 			summaryReport = repo
 			continue
 		}
-		reportBlocks = append(reportBlocks, s.buildTeamRepositoryReport(repo))
+		reportBlocks = append(reportBlocks, s.BuildTeamRepositoryReport(repo))
 	}
 
 	// Prepend the header & summary to the collected report blocks
@@ -209,7 +209,7 @@ func (s *SlackReporter) buildAllTeamReports(
 	slackMessages := []*SlackReport{}
 
 	for team, repos := range teamReports {
-		report := s.buildTeamReport(team, repos, reportTime)
+		report := s.BuildTeamReport(team, repos, reportTime)
 		if report != nil {
 			slackMessages = append(slackMessages, report)
 		}
@@ -227,16 +227,16 @@ func (s *SlackReporter) SendTeamReports(
 	slackMessages := s.buildAllTeamReports(teamReports, reportTime)
 	for _, message := range slackMessages {
 		wg.Add(1)
-		go s.sendSlackMessage(message.ChannelID, slack.MsgOptionBlocks(message.Message.Blocks.BlockSet...), wg)
+		go s.SendSlackMessage(message.ChannelID, slack.MsgOptionBlocks(message.Message.Blocks.BlockSet...), wg)
 	}
 	return nil
 }
 
-func (s *SlackReporter) sendSlackMessage(channel string, message slack.MsgOption, wg *sync.WaitGroup) {
+func (s *SlackReporter) SendSlackMessage(channel string, message slack.MsgOption, wg *sync.WaitGroup) {
 	defer wg.Done()
 	log := logger.Get()
-	if s.client != nil {
-		_, timestamp, err := s.client.PostMessage(channel, message, slack.MsgOptionAsUser(true))
+	if s.Client != nil {
+		_, timestamp, err := s.Client.PostMessage(channel, message, slack.MsgOptionAsUser(true))
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to send Slack message.")
 		} else {
@@ -253,5 +253,5 @@ func NewSlackReporter(cfg *config.Config) (SlackReporter, error) {
 		return SlackReporter{}, fmt.Errorf("No Slack token was provided.")
 	}
 	client := slack.New(cfg.Slack_auth_token, slack.OptionDebug(true))
-	return SlackReporter{Config: cfg, client: client}, nil
+	return SlackReporter{Config: cfg, Client: client}, nil
 }
