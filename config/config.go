@@ -58,14 +58,15 @@ func GetUserConfig(configFile string) (Config, error) {
 	}
 	viper.SetConfigFile(configFile)
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal().Err(err).Msg("Error reading config file.")
+		log.Error().Err(err).Msg("Error reading config file.")
+		return Config{}, err
 	}
 
 	// (Optionally) Load a .env file
 	if fileExists("./.env") {
 		viper.SetConfigFile("./.env")
 		viper.SetConfigType("env")
-		if err := viper.ReadInConfig(); err != nil {
+		if err := viper.MergeInConfig(); err != nil {
 			log.Error().Err(err).Msg("Error loading .env file.")
 		}
 	} else {
@@ -78,8 +79,9 @@ func GetUserConfig(configFile string) (Config, error) {
 	viper.SetEnvPrefix("vulnbot")
 	viper.AutomaticEnv()
 
-	// Finally, copy all loaded values into the config object
-	_ = viper.Unmarshal(&userCfg)
+	if err := viper.Unmarshal(&userCfg); err != nil {
+		return Config{}, err
+	}
 
 	return userCfg, nil
 }
