@@ -45,7 +45,10 @@ func Scan(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	reporters = append(reporters, &reporting.ConsoleReporter{Config: &cfg})
+	if slices.Contains(cfg.Reporters, "console") {
+		reporters = append(reporters, &reporting.ConsoleReporter{Config: &cfg})
+	}
+
 	reportTime := time.Now().UTC()
 	wg := new(sync.WaitGroup)
 

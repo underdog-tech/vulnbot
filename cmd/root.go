@@ -47,7 +47,7 @@ func Execute() {
 func init() {
 	persistent := rootCmd.PersistentFlags()
 	persistent.StringP("config", "c", "config.toml", "Config file path.")
-	persistent.StringSliceP("reporters", "r", []string{"slack"}, "Specify a list of reporters for reporting vulnerabilities.")
+	persistent.StringSliceP("reporters", "r", []string{"slack", "console"}, "Specify a list of reporters for reporting vulnerabilities.")
 	persistent.BoolP("quiet", "q", false, "Suppress all console output. (Mutually exclusive with 'verbose'.)")
 	persistent.CountP("verbose", "v", "More verbose output. Specifying multiple times increases verbosity. (Mutually exclusive with 'quiet'.)")
 
