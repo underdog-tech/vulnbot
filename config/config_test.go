@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -80,7 +81,8 @@ func TestGetUserConfigFromFile(t *testing.T) {
 }
 
 func TestGetUserConfigFromEnv(t *testing.T) {
-	t.Setenv("VULNBOT_DISABLE_SLACK", "1")
+	sliceAsStrings := strings.Join([]string{"slack"}, ",")
+	t.Setenv("VULNBOT_REPORTERS", sliceAsStrings)
 	t.Setenv("VULNBOT_GITHUB_ORG", "hitchhikers")
 	// This should override the config file
 	t.Setenv("VULNBOT_DEFAULT_SLACK_CHANNEL", "other_slack_channel")
@@ -91,7 +93,8 @@ func TestGetUserConfigFromEnv(t *testing.T) {
 	cfg, err := config.GetUserConfig(testDataPath)
 	assert.Nil(t, err)
 
-	assert.True(t, cfg.Disable_slack)
+	deserializedSlice := strings.Split(sliceAsStrings, ",")
+	assert.Equal(t, deserializedSlice, cfg.Reporters)
 	assert.Equal(t, "hitchhikers", cfg.Github_org)
 	assert.Equal(t, "other_slack_channel", cfg.Default_slack_channel)
 }
