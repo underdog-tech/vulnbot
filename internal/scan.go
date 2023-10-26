@@ -9,6 +9,7 @@ import (
 	"github.com/underdog-tech/vulnbot/reporting"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 )
 
 func Scan(cmd *cobra.Command, args []string) {
@@ -35,7 +36,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	// Load and report out to all configured reporters
 	reporters := []reporting.Reporter{}
 
-	if !cfg.Disable_slack {
+	if slices.Contains(cfg.Reporters, "slack") {
 		slackReporter, err := reporting.NewSlackReporter(&cfg)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create Slack reporter.")
@@ -44,7 +45,10 @@ func Scan(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	reporters = append(reporters, &reporting.ConsoleReporter{Config: &cfg})
+	if slices.Contains(cfg.Reporters, "console") {
+		reporters = append(reporters, &reporting.ConsoleReporter{Config: &cfg})
+	}
+
 	reportTime := time.Now().UTC()
 	wg := new(sync.WaitGroup)
 
