@@ -6,15 +6,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// scanCmd represents the scan command
-var scanCmd = &cobra.Command{
-	Use:     "scan",
-	Short:   "",
-	Long:    ``,
-	Run:     internal.Scan,
-	Aliases: []string{"s", "scan"},
-}
-
-func init() {
-	rootCmd.AddCommand(scanCmd)
+// NewScanCommand returns a Cobra command for running scans
+func NewScanCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:     "scan",
+		Short:   "",
+		Long:    ``,
+		Run:     internal.Scan,
+		Aliases: []string{"s", "scan"},
+	}
 }

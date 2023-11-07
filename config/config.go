@@ -39,18 +39,21 @@ func fileExists(fname string) bool {
 	return true
 }
 
-func GetUserConfig(configFile string) (Config, error) {
-	log := logger.Get()
-
-	userCfg := Config{}
+func SetConfigDefaults() {
+	cfg := Config{}
 
 	// Use reflection to register all config fields in Viper to set up defaults
-	cfgFields := reflect.ValueOf(userCfg)
+	cfgFields := reflect.ValueOf(cfg)
 	cfgType := cfgFields.Type()
 
 	for i := 0; i < cfgFields.NumField(); i++ {
 		viper.SetDefault(cfgType.Field(i).Name, cfgFields.Field(i).Interface())
 	}
+}
+
+func GetUserConfig(configFile string) (Config, error) {
+	log := logger.Get()
+	userCfg := Config{}
 
 	// Load the main config file
 	if !fileExists(configFile) {
