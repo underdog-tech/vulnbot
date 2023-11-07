@@ -50,7 +50,7 @@ type FindingSummary struct {
 type ProjectFindingSummary struct {
 	FindingSummary
 
-	Name string
+	Project *querying.Project
 }
 
 // GetHighestCriticality looks for the severity level of the most critical
@@ -75,9 +75,9 @@ func NewFindingSummary() FindingSummary {
 	}
 }
 
-func NewProjectFindingSummary(name string) ProjectFindingSummary {
+func NewProjectFindingSummary(project *querying.Project) ProjectFindingSummary {
 	summary := NewFindingSummary()
-	return ProjectFindingSummary{Name: name, FindingSummary: summary}
+	return ProjectFindingSummary{Project: project, FindingSummary: summary}
 }
 
 func SummarizeFindings(projects *querying.ProjectCollection) (FindingSummary, []ProjectFindingSummary) {
@@ -86,7 +86,7 @@ func SummarizeFindings(projects *querying.ProjectCollection) (FindingSummary, []
 	projectReportCollection := []ProjectFindingSummary{}
 
 	for _, project := range projects.Projects {
-		projectReport := NewProjectFindingSummary(project.Name)
+		projectReport := NewProjectFindingSummary(project)
 		if numFindings := len(project.Findings); numFindings > 0 {
 			affectedRepos += 1
 			vulnCount += numFindings
@@ -129,7 +129,7 @@ func (r TeamProjectCollection) Less(i, j int) bool {
 	if sevOne != sevTwo {
 		return sevOne < sevTwo
 	}
-	return r[i].Name < r[j].Name
+	return r[i].Project.Name < r[j].Project.Name
 }
 
 // GroupTeamFindings gathers a map of each team and the summaries of the projects
@@ -140,7 +140,7 @@ func GroupTeamFindings(projects *querying.ProjectCollection, summaries []Project
 	for _, project := range projects.Projects {
 		projectSummary := ProjectFindingSummary{}
 		for _, sum := range summaries {
-			if sum.Name == project.Name {
+			if sum.Project == project {
 				projectSummary = sum
 				break
 			}
@@ -152,7 +152,7 @@ func GroupTeamFindings(projects *querying.ProjectCollection, summaries []Project
 	}
 	// We also need a summary report for each team
 	for team, projects := range teamProjects {
-		summaryReport := NewProjectFindingSummary(SUMMARY_KEY)
+		summaryReport := NewProjectFindingSummary(querying.NewProject(SUMMARY_KEY))
 		for _, project := range projects {
 			summaryReport.TotalCount += project.TotalCount
 		}

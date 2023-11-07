@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/underdog-tech/vulnbot/config"
+	"github.com/underdog-tech/vulnbot/querying"
 	"github.com/underdog-tech/vulnbot/reporting"
 )
 
@@ -206,7 +207,7 @@ func TestSendSlackSummaryReportSendsSingleMessage(t *testing.T) {
 func TestBuildSlackTeamRepositoryReport(t *testing.T) {
 	reporter := reporting.SlackReporter{Config: &config.Config{}}
 
-	report := reporting.NewProjectFindingSummary("foo")
+	report := reporting.NewProjectFindingSummary(querying.NewProject("foo"))
 	report.VulnsByEcosystem[config.FindingEcosystemPython] = 15
 	report.VulnsBySeverity[config.FindingSeverityCritical] = 2
 	report.VulnsBySeverity[config.FindingSeverityHigh] = 3
@@ -240,16 +241,16 @@ func TestBuildSlackTeamReport(t *testing.T) {
 	}
 	reporter := reporting.SlackReporter{Config: &cfg}
 
-	repo1Report := reporting.NewProjectFindingSummary("repo1")
+	repo1Report := reporting.NewProjectFindingSummary(querying.NewProject("repo1"))
 	repo1Report.VulnsByEcosystem[config.FindingEcosystemPython] = 10
 	repo1Report.VulnsBySeverity[config.FindingSeverityLow] = 10
 
-	repo2Report := reporting.NewProjectFindingSummary("repo2")
+	repo2Report := reporting.NewProjectFindingSummary(querying.NewProject("repo2"))
 	repo2Report.VulnsByEcosystem[config.FindingEcosystemPython] = 5
 	repo2Report.VulnsBySeverity[config.FindingSeverityCritical] = 1
 	repo2Report.VulnsBySeverity[config.FindingSeverityModerate] = 4
 
-	summaryReport := reporting.NewProjectFindingSummary(reporting.SUMMARY_KEY)
+	summaryReport := reporting.NewProjectFindingSummary(querying.NewProject(reporting.SUMMARY_KEY))
 	summaryReport.AffectedRepos = 2
 	summaryReport.TotalCount = 15
 
@@ -336,9 +337,9 @@ func TestSendSlackTeamReportsSendsMessagePerTeam(t *testing.T) {
 	}
 	mockClient := new(MockSlackClient)
 	reporter := reporting.SlackReporter{Config: &cfg, Client: mockClient}
-	repo1Report := reporting.NewProjectFindingSummary("repo1")
-	repo2Report := reporting.NewProjectFindingSummary("repo2")
-	summaryReport := reporting.NewProjectFindingSummary(reporting.SUMMARY_KEY)
+	repo1Report := reporting.NewProjectFindingSummary(querying.NewProject("repo1"))
+	repo2Report := reporting.NewProjectFindingSummary(querying.NewProject("repo2"))
+	summaryReport := reporting.NewProjectFindingSummary(querying.NewProject(reporting.SUMMARY_KEY))
 	teamReports := map[config.TeamConfig]reporting.TeamProjectCollection{
 		teamFoo: {
 			&repo1Report,

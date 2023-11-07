@@ -12,50 +12,53 @@ import (
 )
 
 // We want a fairly comprehensive collection, to generate a few different numbers
+var projFoo = querying.Project{
+	Name: "foo",
+	Findings: []*querying.Finding{
+		{
+			Ecosystem: config.FindingEcosystemGo,
+			Severity:  config.FindingSeverityCritical,
+			Identifiers: querying.FindingIdentifierMap{
+				querying.FindingIdentifierCVE: "CVE-1",
+			},
+		},
+		{
+			Ecosystem: config.FindingEcosystemPython,
+			Severity:  config.FindingSeverityHigh,
+			Identifiers: querying.FindingIdentifierMap{
+				querying.FindingIdentifierCVE: "CVE-2",
+			},
+		},
+	},
+}
+var projBar = querying.Project{
+	Name: "bar",
+	Findings: []*querying.Finding{
+		{
+			Ecosystem: config.FindingEcosystemGo,
+			Severity:  config.FindingSeverityInfo,
+			Identifiers: querying.FindingIdentifierMap{
+				querying.FindingIdentifierCVE: "CVE-3",
+			},
+		},
+		{
+			Ecosystem: config.FindingEcosystemJS,
+			Severity:  config.FindingSeverityCritical,
+			Identifiers: querying.FindingIdentifierMap{
+				querying.FindingIdentifierCVE: "CVE-4",
+			},
+		},
+	},
+}
+var projBaz = querying.Project{
+	Name:     "baz",
+	Findings: []*querying.Finding{},
+}
 var testProjectFindings = querying.ProjectCollection{
 	Projects: []*querying.Project{
-		{
-			Name: "foo",
-			Findings: []*querying.Finding{
-				{
-					Ecosystem: config.FindingEcosystemGo,
-					Severity:  config.FindingSeverityCritical,
-					Identifiers: querying.FindingIdentifierMap{
-						querying.FindingIdentifierCVE: "CVE-1",
-					},
-				},
-				{
-					Ecosystem: config.FindingEcosystemPython,
-					Severity:  config.FindingSeverityHigh,
-					Identifiers: querying.FindingIdentifierMap{
-						querying.FindingIdentifierCVE: "CVE-2",
-					},
-				},
-			},
-		},
-		{
-			Name: "bar",
-			Findings: []*querying.Finding{
-				{
-					Ecosystem: config.FindingEcosystemGo,
-					Severity:  config.FindingSeverityInfo,
-					Identifiers: querying.FindingIdentifierMap{
-						querying.FindingIdentifierCVE: "CVE-3",
-					},
-				},
-				{
-					Ecosystem: config.FindingEcosystemJS,
-					Severity:  config.FindingSeverityCritical,
-					Identifiers: querying.FindingIdentifierMap{
-						querying.FindingIdentifierCVE: "CVE-4",
-					},
-				},
-			},
-		},
-		{
-			Name:     "baz",
-			Findings: []*querying.Finding{},
-		},
+		&projFoo,
+		&projBar,
+		&projBaz,
 	},
 }
 
@@ -83,7 +86,7 @@ func TestSummarizeGeneratesProjectReports(t *testing.T) {
 	fooSeverities[config.FindingSeverityCritical] = 1
 	fooSeverities[config.FindingSeverityHigh] = 1
 	foo := reporting.ProjectFindingSummary{
-		Name: "foo",
+		Project: &projFoo,
 		FindingSummary: reporting.FindingSummary{
 			AffectedRepos: 1,
 			TotalCount:    2,
@@ -99,7 +102,7 @@ func TestSummarizeGeneratesProjectReports(t *testing.T) {
 	barSeverities[config.FindingSeverityCritical] = 1
 	barSeverities[config.FindingSeverityInfo] = 1
 	bar := reporting.ProjectFindingSummary{
-		Name: "bar",
+		Project: &projBar,
 		FindingSummary: reporting.FindingSummary{
 			AffectedRepos: 1,
 			TotalCount:    2,
@@ -114,7 +117,7 @@ func TestSummarizeGeneratesProjectReports(t *testing.T) {
 	expected := []reporting.ProjectFindingSummary{
 		foo,
 		bar,
-		reporting.NewProjectFindingSummary("baz"),
+		reporting.NewProjectFindingSummary(&projBaz),
 	}
 	_, actual := reporting.SummarizeFindings(&testProjectFindings)
 	assert.Equal(t, expected, actual)
@@ -127,7 +130,7 @@ func TestGetHighestCriticality(t *testing.T) {
 			sevMap := reporting.NewSeverityMap()
 			sevMap[severity] = 1
 			summary := reporting.ProjectFindingSummary{
-				Name: "foo",
+				Project: &projFoo,
 				FindingSummary: reporting.FindingSummary{
 					AffectedRepos:   1,
 					TotalCount:      1,
@@ -140,7 +143,7 @@ func TestGetHighestCriticality(t *testing.T) {
 }
 
 func TestGetHighestCriticalityNoFindings(t *testing.T) {
-	summary := reporting.NewProjectFindingSummary("foo")
+	summary := reporting.NewProjectFindingSummary(&projFoo)
 	assert.Equal(t, summary.GetHighestCriticality(), config.FindingSeverityUndefined)
 }
 
@@ -149,7 +152,7 @@ func TestSortTeamProjectCollection(t *testing.T) {
 	fooSeverities[config.FindingSeverityCritical] = 1
 	fooSeverities[config.FindingSeverityHigh] = 1
 	foo := reporting.ProjectFindingSummary{
-		Name: "foo",
+		Project: &projFoo,
 		FindingSummary: reporting.FindingSummary{
 			AffectedRepos:   1,
 			TotalCount:      2,
@@ -161,7 +164,7 @@ func TestSortTeamProjectCollection(t *testing.T) {
 	barSeverities[config.FindingSeverityCritical] = 1
 	barSeverities[config.FindingSeverityInfo] = 1
 	bar := reporting.ProjectFindingSummary{
-		Name: "bar",
+		Project: &projBar,
 		FindingSummary: reporting.FindingSummary{
 			AffectedRepos:   1,
 			TotalCount:      2,
@@ -172,7 +175,7 @@ func TestSortTeamProjectCollection(t *testing.T) {
 	bazSeverities := reporting.NewSeverityMap()
 	bazSeverities[config.FindingSeverityModerate] = 1
 	baz := reporting.ProjectFindingSummary{
-		Name: "baz",
+		Project: &projBaz,
 		FindingSummary: reporting.FindingSummary{
 			AffectedRepos:   1,
 			TotalCount:      1,
@@ -223,13 +226,13 @@ func TestGroupTeamFindings(t *testing.T) {
 			proj.Owners = mapset.NewSet[config.TeamConfig]()
 		}
 	}()
-	projFooSummary := reporting.NewProjectFindingSummary("foo")
-	projBarSummary := reporting.NewProjectFindingSummary("bar")
-	projBazSummary := reporting.NewProjectFindingSummary("baz")
+	projFooSummary := reporting.NewProjectFindingSummary(&projFoo)
+	projBarSummary := reporting.NewProjectFindingSummary(&projBar)
+	projBazSummary := reporting.NewProjectFindingSummary(&projBaz)
 
-	teamFooSummary := reporting.NewProjectFindingSummary(reporting.SUMMARY_KEY)
-	teamBarSummary := reporting.NewProjectFindingSummary(reporting.SUMMARY_KEY)
-	teamBazSummary := reporting.NewProjectFindingSummary(reporting.SUMMARY_KEY)
+	teamFooSummary := reporting.NewProjectFindingSummary(querying.NewProject(reporting.SUMMARY_KEY))
+	teamBarSummary := reporting.NewProjectFindingSummary(querying.NewProject(reporting.SUMMARY_KEY))
+	teamBazSummary := reporting.NewProjectFindingSummary(querying.NewProject(reporting.SUMMARY_KEY))
 
 	summaries := []reporting.ProjectFindingSummary{projFooSummary, projBarSummary, projBazSummary}
 
