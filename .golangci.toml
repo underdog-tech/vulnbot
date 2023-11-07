@@ -1,2 +1,10 @@
 [linters]
-enable = ["cyclop", "gocognit", "gosec", "nilnil", "prealloc", "zerologlint"]
+enable = [
+    "cyclop",
+    "gochecknoinits",
+    "gocognit",
+    "gosec",
+    "nilnil",
+    "prealloc",
+    "zerologlint",
+]
