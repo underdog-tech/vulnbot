@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/rs/zerolog"
-	"github.com/underdog-tech/vulnbot/config"
 	"github.com/underdog-tech/vulnbot/logger"
 
 	"github.com/spf13/cobra"
@@ -47,7 +46,9 @@ func NewRootCommand() *cobra.Command {
 
 	// Set up Viper config
 	_ = viper.BindPFlags(pflags)
-	config.SetConfigDefaults()
+	// tarkatronic(2023-11-07): This appears to be no longer necessary.
+	// Leaving it commented out for the time being. Viper is confusing.
+	// config.SetConfigDefaults()
 
 	return rootCmd
 }

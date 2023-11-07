@@ -206,8 +206,11 @@ func TestSendSlackSummaryReportSendsSingleMessage(t *testing.T) {
 
 func TestBuildSlackTeamRepositoryReport(t *testing.T) {
 	reporter := reporting.SlackReporter{Config: &config.Config{}}
-
-	report := reporting.NewProjectFindingSummary(querying.NewProject("foo"))
+	proj := querying.NewProject("foo")
+	proj.Links = map[string]string{
+		"GitHub": "https://github.com/bar/foo",
+	}
+	report := reporting.NewProjectFindingSummary(proj)
 	report.VulnsByEcosystem[config.FindingEcosystemPython] = 15
 	report.VulnsBySeverity[config.FindingSeverityCritical] = 2
 	report.VulnsBySeverity[config.FindingSeverityHigh] = 3
@@ -218,7 +221,7 @@ func TestBuildSlackTeamRepositoryReport(t *testing.T) {
 		"fields": []map[string]interface{}{
 			{
 				"type": "mrkdwn",
-				"text": "  *foo*",
+				"text": "  *foo* · [<https://github.com/bar/foo|GitHub>]",
 			},
 			{
 				"type": "mrkdwn",
