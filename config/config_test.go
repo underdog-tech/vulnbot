@@ -80,6 +80,8 @@ func TestGetUserConfigFromFile(t *testing.T) {
 }
 
 func TestGetUserConfigFromEnv(t *testing.T) {
+	config.SetConfigDefaults()
+
 	t.Setenv("VULNBOT_REPORTERS", "slack")
 	t.Setenv("VULNBOT_GITHUB_ORG", "hitchhikers")
 	// This should override the config file
