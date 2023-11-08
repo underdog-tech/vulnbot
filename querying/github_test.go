@@ -38,7 +38,7 @@ func getTestProject() querying.ProjectCollection {
 			{
 				Name: "zaphod",
 				Links: map[string]string{
-					"GitHub": "https://heart-of-gold/zaphod",
+					"GitHub": "https://heart-of-gold/zaphod/security/dependabot",
 				},
 				Findings: []*querying.Finding{
 					{
