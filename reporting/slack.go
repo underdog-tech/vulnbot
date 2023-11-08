@@ -148,8 +148,16 @@ func (s *SlackReporter) BuildTeamRepositoryReport(
 			severityIcon = DEFAULT_SLACK_ICON
 		}
 	}
+	projLinks := make([]string, 0)
+	for title, link := range repoReport.Project.Links {
+		projLinks = append(projLinks, fmt.Sprintf("[<%s|%s>]", link, title))
+	}
+	projName := fmt.Sprintf("%s *%s*", severityIcon, repoReport.Project.Name)
+	if len(projLinks) > 0 {
+		projName = fmt.Sprintf("%s · %s", projName, strings.Join(projLinks, " "))
+	}
 	fields := []*slack.TextBlockObject{
-		slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf("%s *%s*", severityIcon, repoReport.Name), false, false),
+		slack.NewTextBlockObject(slack.MarkdownType, projName, false, false),
 		slack.NewTextBlockObject(slack.MarkdownType, strings.Join(vulnCounts, " | "), false, false),
 	}
 	return slack.NewSectionBlock(nil, fields, nil)
@@ -172,7 +180,7 @@ func (s *SlackReporter) BuildTeamReport(
 	sort.Sort(repos)
 	var summaryReport *ProjectFindingSummary
 	for _, repo := range repos {
-		if repo.Name == SUMMARY_KEY {
+		if repo.Project.Name == SUMMARY_KEY {
 			summaryReport = repo
 			continue
 		}

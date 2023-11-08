@@ -146,7 +146,11 @@ func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *syn
 func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, repo orgRepo) error {
 	log := logger.Get()
 	project := projects.GetProject(repo.Name)
-	project.Links["GitHub"] = repo.Url
+
+	// Link directly to Dependabot findings.
+	// There doesn't appear to be a GraphQL property for this link.
+	project.Links["GitHub"] = repo.Url + "/security/dependabot"
+
 	log.Debug().Str("project", project.Name).Msg("Processing findings for project.")
 
 	for _, vuln := range repo.VulnerabilityAlerts.Nodes {
@@ -204,7 +208,9 @@ type orgTeam struct {
 		Edges []struct {
 			Permission string
 			Node       struct {
-				Name string
+				Name       string
+				IsFork     bool
+				IsArchived bool
 			}
 		}
 	} `graphql:"repositories(orderBy: {field: NAME, direction: ASC}, first: 100, after: $repoCursor)"`
@@ -235,8 +241,7 @@ func (gh *GithubDataSource) gatherRepoOwners(projects *ProjectCollection) {
 
 	for {
 		log.Info().Msg("Querying GitHub API for repository ownership information.")
-		err := gh.GhClient.Query(gh.ctx, &ownerQuery, queryVars)
-		if err != nil {
+		if err := gh.GhClient.Query(gh.ctx, &ownerQuery, queryVars); err != nil {
 			log.Fatal().Err(err).Msg("Failed to query GitHub for repository ownership.")
 		}
 		for _, team := range ownerQuery.Organization.Teams.Nodes {
@@ -247,6 +252,10 @@ func (gh *GithubDataSource) gatherRepoOwners(projects *ProjectCollection) {
 			}
 			// TODO: Handle pagination of repositories owned by a team
 			for _, repo := range team.Repositories.Edges {
+				if repo.Node.IsArchived || repo.Node.IsFork {
+					log.Debug().Str("Repo", repo.Node.Name).Bool("IsFork", repo.Node.IsFork).Bool("IsArchived", repo.Node.IsArchived).Msg("Skipping untracked repository.")
+					continue
+				}
 				switch repo.Permission {
 				case "ADMIN", "MAINTAIN":
 					project := projects.GetProject(repo.Node.Name)

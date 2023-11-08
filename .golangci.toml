@@ -8,3 +8,6 @@ enable = [
     "prealloc",
     "zerologlint",
 ]
+
+[linters-settings.cyclop]
+max-complexity = 11
