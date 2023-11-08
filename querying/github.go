@@ -146,7 +146,11 @@ func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *syn
 func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, repo orgRepo) error {
 	log := logger.Get()
 	project := projects.GetProject(repo.Name)
-	project.Links["GitHub"] = repo.Url
+
+	// Link directly to Dependabot findings.
+	// There doesn't appear to be a GraphQL property for this link.
+	project.Links["GitHub"] = repo.Url + "/security/dependabot"
+
 	log.Debug().Str("project", project.Name).Msg("Processing findings for project.")
 
 	for _, vuln := range repo.VulnerabilityAlerts.Nodes {
