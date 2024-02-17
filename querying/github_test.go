@@ -12,7 +12,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/shurcooL/githubv4"
 	"github.com/stretchr/testify/assert"
-	"github.com/underdog-tech/vulnbot/config"
+	"github.com/underdog-tech/vulnbot/configs"
 	"github.com/underdog-tech/vulnbot/querying"
 )
 
@@ -42,8 +42,8 @@ func getTestProject() querying.ProjectCollection {
 				},
 				Findings: []*querying.Finding{
 					{
-						Ecosystem:   config.FindingEcosystemGo,
-						Severity:    config.FindingSeverityCritical,
+						Ecosystem:   configs.FindingEcosystemGo,
+						Severity:    configs.FindingSeverityCritical,
 						Description: "The Improbability Drive is far too improbable.",
 						PackageName: "improbability-drive",
 						Identifiers: querying.FindingIdentifierMap{
@@ -51,7 +51,7 @@ func getTestProject() querying.ProjectCollection {
 						},
 					},
 				},
-				Owners: mapset.NewSet[config.TeamConfig](),
+				Owners: mapset.NewSet[configs.TeamConfig](),
 			},
 		},
 	}
@@ -64,7 +64,7 @@ func TestCollectFindingsSingleProjectSingleFinding(t *testing.T) {
 	)
 	defer server.Close()
 
-	conf := config.Config{}
+	conf := configs.Config{}
 	conf.Github_org = "heart-of-gold"
 	conf.Github_token = "pangalactic-gargleblaster"
 
@@ -84,7 +84,7 @@ func TestCollectFindingsSingleProjectSingleFinding(t *testing.T) {
 
 // TestCollectFindingsOwnerNotConfigured is nearly identical to TestCollectFindingsSingleProjectSingleFinding
 // The only difference is that this test simulates receiving an owning team from GitHub
-// which is not present in config. This is to ensure that we don't end up with empty
+// which is not present in configs. This is to ensure that we don't end up with empty
 // TeamConfig instances in our project owners set.
 func TestCollectFindingsOwnerNotConfigured(t *testing.T) {
 	server := getTestServer(
@@ -93,7 +93,7 @@ func TestCollectFindingsOwnerNotConfigured(t *testing.T) {
 	)
 	defer server.Close()
 
-	conf := config.Config{}
+	conf := configs.Config{}
 	conf.Github_org = "heart-of-gold"
 	conf.Github_token = "pangalactic-gargleblaster"
 
@@ -118,12 +118,12 @@ func TestCollectFindingsOwnerIsConfigured(t *testing.T) {
 	)
 	defer server.Close()
 
-	crewTeam := config.TeamConfig{
+	crewTeam := configs.TeamConfig{
 		Name:        "Heart of Gold Crew",
 		Github_slug: "crew",
 	}
-	conf := config.Config{
-		Team: []config.TeamConfig{crewTeam},
+	conf := configs.Config{
+		Team: []configs.TeamConfig{crewTeam},
 	}
 	conf.Github_org = "heart-of-gold"
 	conf.Github_token = "pangalactic-gargleblaster"
@@ -138,7 +138,7 @@ func TestCollectFindingsOwnerIsConfigured(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	owners := mapset.NewSet[config.TeamConfig]()
+	owners := mapset.NewSet[configs.TeamConfig]()
 	owners.Add(crewTeam)
 	expected := getTestProject()
 	expected.Projects[0].Owners = owners
@@ -152,7 +152,7 @@ func TestCollectFindingsMultipleFindings(t *testing.T) {
 	)
 	defer server.Close()
 
-	conf := config.Config{}
+	conf := configs.Config{}
 	conf.Github_org = "heart-of-gold"
 	conf.Github_token = "pangalactic-gargleblaster"
 
@@ -168,8 +168,8 @@ func TestCollectFindingsMultipleFindings(t *testing.T) {
 	}
 	expected := getTestProject()
 	finding2 := querying.Finding{
-		Ecosystem:   config.FindingEcosystemPython,
-		Severity:    config.FindingSeverityModerate,
+		Ecosystem:   configs.FindingEcosystemPython,
+		Severity:    configs.FindingSeverityModerate,
 		Description: "All the dolphins are leaving.",
 		PackageName: "dolphins",
 		Identifiers: querying.FindingIdentifierMap{

@@ -1,23 +1,24 @@
 package reporting
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/underdog-tech/vulnbot/config"
-	"github.com/underdog-tech/vulnbot/logger"
+	"github.com/slack-go/slack"
 	"golang.org/x/exp/maps"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	"github.com/slack-go/slack"
+	"github.com/underdog-tech/vulnbot/configs"
+	"github.com/underdog-tech/vulnbot/logger"
 )
 
 type SlackReporter struct {
-	Config *config.Config
+	Config *configs.Config
 	Client SlackClientInterface
 }
 
@@ -35,77 +36,45 @@ func (s *SlackReporter) BuildSummaryReport(
 	numRepos int,
 	report FindingSummary,
 	reportTime time.Time,
+	teamSummaries TeamSummaries,
 ) slack.Message {
 	reportBlocks := []slack.Block{
 		slack.NewHeaderBlock(
 			slack.NewTextBlockObject(slack.PlainTextType, header, false, false),
 		),
-		slack.NewDividerBlock(),
 		slack.NewContextBlock("", slack.NewTextBlockObject(
-			slack.PlainTextType, reportTime.Format(time.RFC1123), false, false,
+			slack.PlainTextType, reportTime.Format(DATE_LAYOUT), false, false,
 		)),
 		slack.NewSectionBlock(
 			slack.NewTextBlockObject(
 				slack.MarkdownType,
 				fmt.Sprintf(
-					"*Total repositories:* %d\n"+
-						"*Total vulnerabilities:* %d\n"+
-						"*Affected repositories:* %d\n",
-					numRepos,
+					"*Total Vulnerabilities:* %d\n"+
+						"*Affected Repositories:* %d\n"+
+						"*Total Repositories:* %d\n",
 					report.TotalCount,
 					report.AffectedRepos,
+					numRepos,
 				),
 				false, false,
 			),
 			nil, nil,
 		),
 		slack.NewHeaderBlock(
-			slack.NewTextBlockObject(slack.PlainTextType, "Breakdown by Severity", false, false),
+			slack.NewTextBlockObject(slack.PlainTextType, "Team Breakdown", false, false),
 		),
+		slack.NewDividerBlock(),
 	}
 
-	severities := config.GetSeverityReportOrder()
-	for _, severity := range severities {
-		vulnCount, exists := report.VulnsBySeverity[severity]
-		if exists {
-			icon, err := config.GetIconForSeverity(severity, s.Config.Severity)
-			if err != nil {
-				icon = DEFAULT_SLACK_ICON
-			}
-			reportBlocks = append(reportBlocks, slack.NewSectionBlock(
-				slack.NewTextBlockObject(
-					slack.MarkdownType,
-					fmt.Sprintf("%s *%s:* %d", icon, config.SeverityNames[severity], vulnCount),
-					false, false,
-				),
-				nil, nil,
-			))
-		}
-	}
+	// Generate Team Breakdown
+	reportBlocks = s.generateTeamReport(reportBlocks, teamSummaries)
 
-	reportBlocks = append(reportBlocks, slack.NewHeaderBlock(
-		slack.NewTextBlockObject(slack.PlainTextType, "Breakdown by Ecosystem", false, false),
-	))
+	// Generate Severity Breakdown
+	reportBlocks = s.generateSeverityReport(reportBlocks, report)
 
-	ecosystems := maps.Keys(report.VulnsByEcosystem)
-	caser := cases.Title(language.English)
-	sort.Slice(ecosystems, func(i, j int) bool { return ecosystems[i] < ecosystems[j] })
+	// Generate Ecosystem Breakdown
+	reportBlocks = s.generateEcosystemReport(reportBlocks, report)
 
-	for _, ecosystem := range ecosystems {
-		vulnCount := report.VulnsByEcosystem[ecosystem]
-		icon, err := config.GetIconForEcosystem(ecosystem, s.Config.Ecosystem)
-		if err != nil {
-			icon = DEFAULT_SLACK_ICON
-		}
-		reportBlocks = append(reportBlocks, slack.NewSectionBlock(
-			slack.NewTextBlockObject(
-				slack.MarkdownType,
-				fmt.Sprintf("%s *%s:* %d", icon, caser.String(string(ecosystem)), vulnCount),
-				false, false,
-			),
-			nil, nil,
-		))
-	}
 	return slack.NewBlockMessage(reportBlocks...)
 }
 
@@ -114,10 +83,11 @@ func (s *SlackReporter) SendSummaryReport(
 	numRepos int,
 	report FindingSummary,
 	reportTime time.Time,
+	teamSummaries TeamSummaries,
 	wg *sync.WaitGroup,
 ) error {
 	defer wg.Done()
-	summaryReport := s.BuildSummaryReport(header, numRepos, report, reportTime)
+	summaryReport := s.BuildSummaryReport(header, numRepos, report, reportTime, teamSummaries)
 	wg.Add(1)
 	go s.SendSlackMessage(s.Config.Default_slack_channel, slack.MsgOptionBlocks(summaryReport.Blocks.BlockSet...), wg)
 	return nil
@@ -126,27 +96,20 @@ func (s *SlackReporter) SendSummaryReport(
 func (s *SlackReporter) BuildTeamRepositoryReport(
 	repoReport *ProjectFindingSummary,
 ) *slack.SectionBlock {
-	var err error
 	var severityIcon string
-	severities := config.GetSeverityReportOrder()
+	severities := configs.GetSeverityReportOrder()
 	vulnCounts := make([]string, 0)
 	for _, severity := range severities {
 		vulnCount, exists := repoReport.VulnsBySeverity[severity]
 		if exists {
 			if vulnCount > 0 && severityIcon == "" {
-				severityIcon, err = config.GetIconForSeverity(severity, s.Config.Severity)
-				if err != nil {
-					severityIcon = DEFAULT_SLACK_ICON
-				}
+				severityIcon = configs.GetIconForSeverity(severity, s.Config.Severity)
 			}
-			vulnCounts = append(vulnCounts, fmt.Sprintf("%2d %s", vulnCount, config.SeverityNames[severity]))
+			vulnCounts = append(vulnCounts, fmt.Sprintf("%2d %s", vulnCount, configs.SeverityNames[severity]))
 		}
 	}
 	if severityIcon == "" {
-		severityIcon, err = config.GetIconForSeverity(config.FindingSeverityUndefined, s.Config.Severity)
-		if err != nil {
-			severityIcon = DEFAULT_SLACK_ICON
-		}
+		severityIcon = configs.GetIconForSeverity(configs.FindingSeverityUndefined, s.Config.Severity)
 	}
 	projLinks := make([]string, 0)
 	for title, link := range repoReport.Project.Links {
@@ -164,7 +127,7 @@ func (s *SlackReporter) BuildTeamRepositoryReport(
 }
 
 func (s *SlackReporter) BuildTeamReport(
-	teamInfo config.TeamConfig,
+	teamInfo configs.TeamConfig,
 	repos TeamProjectCollection,
 	reportTime time.Time,
 ) *SlackReport {
@@ -211,7 +174,7 @@ func (s *SlackReporter) BuildTeamReport(
 }
 
 func (s *SlackReporter) buildAllTeamReports(
-	teamReports map[config.TeamConfig]TeamProjectCollection,
+	teamReports map[configs.TeamConfig]TeamProjectCollection,
 	reportTime time.Time,
 ) []*SlackReport {
 	slackMessages := []*SlackReport{}
@@ -226,7 +189,7 @@ func (s *SlackReporter) buildAllTeamReports(
 }
 
 func (s *SlackReporter) SendTeamReports(
-	teamReports map[config.TeamConfig]TeamProjectCollection,
+	teamReports map[configs.TeamConfig]TeamProjectCollection,
 	reportTime time.Time,
 	wg *sync.WaitGroup,
 ) error {
@@ -256,10 +219,123 @@ func (s *SlackReporter) SendSlackMessage(channel string, message slack.MsgOption
 }
 
 // NewSlackReporter returns a new SlackReporter instance for reporting out findings to a Slack server
-func NewSlackReporter(cfg *config.Config) (SlackReporter, error) {
+func NewSlackReporter(cfg *configs.Config) (SlackReporter, error) {
 	if cfg.Slack_auth_token == "" {
-		return SlackReporter{}, fmt.Errorf("No Slack token was provided.")
+		return SlackReporter{}, errors.New("No Slack token was provided!")
 	}
 	client := slack.New(cfg.Slack_auth_token, slack.OptionDebug(true))
 	return SlackReporter{Config: cfg, Client: client}, nil
+}
+
+func (s *SlackReporter) generateTeamReport(reportBlocks []slack.Block, teamSummaries TeamSummaries) []slack.Block {
+	teamsBreakdown := calculateTeamBreakdown(teamSummaries)
+
+	// Sort teams based on the number of vulnerabilities.
+	sort.Slice(teamsBreakdown, func(i, j int) bool {
+		return teamsBreakdown[i].TotalVulnerabilities < teamsBreakdown[j].TotalVulnerabilities
+	})
+
+	for i, team := range teamsBreakdown {
+		icon := getIconForTeam(i)
+		severityBlocks := s.generateSeverityBlocks(team.SeverityBreakdown)
+
+		reportBlocks = append(reportBlocks, slack.NewSectionBlock(
+			slack.NewTextBlockObject(
+				slack.MarkdownType,
+				fmt.Sprintf("%s *%s:* %d vulnerabilities", icon, team.Name, team.TotalVulnerabilities),
+				false, false,
+			),
+			nil, slack.NewAccessory(slack.NewOverflowBlockElement("", severityBlocks...)),
+		))
+	}
+
+	return reportBlocks
+}
+
+func calculateTeamBreakdown(teamSummaries TeamSummaries) []TeamBreakdown {
+	var teamsBreakdown []TeamBreakdown
+
+	for team, summary := range teamSummaries {
+		teamsBreakdown = append(teamsBreakdown, TeamBreakdown{
+			Name:                 team.Name,
+			TotalVulnerabilities: summary.GetTeamSummaryReport().TotalCount,
+			SeverityBreakdown:    summary.GetTeamSeverityBreakdown(),
+		})
+	}
+
+	return teamsBreakdown
+}
+
+func getIconForTeam(index int) string {
+	icons := []string{":first_place_medal:", ":second_place_medal:", ":third_place_medal:"}
+	if index < len(icons) {
+		return icons[index]
+	}
+	return ":large_blue_diamond:"
+}
+
+func (s *SlackReporter) generateSeverityBlocks(severityBreakdown map[configs.FindingSeverityType]int) []*slack.OptionBlockObject {
+	var severityBlocks []*slack.OptionBlockObject
+
+	for severityType, severityCount := range severityBreakdown {
+		severityIcon := configs.GetIconForSeverity(severityType, s.Config.Severity)
+		overflowOptionText := slack.NewTextBlockObject(slack.PlainTextType, fmt.Sprintf("%s %v %s",
+			severityIcon,
+			severityCount,
+			configs.SeverityNames[severityType]), true, false)
+		overflowOption := slack.NewOptionBlockObject("value", overflowOptionText, nil)
+		severityBlocks = append(severityBlocks, overflowOption)
+	}
+
+	return severityBlocks
+}
+
+func (s *SlackReporter) generateSeverityReport(reportBlocks []slack.Block, report FindingSummary) []slack.Block {
+	reportBlocks = append(reportBlocks, slack.NewHeaderBlock(
+		slack.NewTextBlockObject(slack.PlainTextType, "Severity Breakdown", false, false),
+	))
+	reportBlocks = append(reportBlocks, slack.NewDividerBlock())
+
+	severities := configs.GetSeverityReportOrder()
+	for _, severity := range severities {
+		vulnCount, exists := report.VulnsBySeverity[severity]
+		if exists {
+			icon := configs.GetIconForSeverity(severity, s.Config.Severity)
+			reportBlocks = append(reportBlocks, slack.NewSectionBlock(
+				slack.NewTextBlockObject(
+					slack.MarkdownType,
+					fmt.Sprintf("%s *%s:* %d", icon, configs.SeverityNames[severity], vulnCount),
+					false, false,
+				),
+				nil, nil,
+			))
+		}
+	}
+
+	return reportBlocks
+}
+
+func (s *SlackReporter) generateEcosystemReport(reportBlocks []slack.Block, report FindingSummary) []slack.Block {
+	reportBlocks = append(reportBlocks, slack.NewHeaderBlock(
+		slack.NewTextBlockObject(slack.PlainTextType, "Ecosystem Breakdown", false, false),
+	))
+	reportBlocks = append(reportBlocks, slack.NewDividerBlock())
+
+	ecosystems := maps.Keys(report.VulnsByEcosystem)
+	caser := cases.Title(language.English)
+	sort.Slice(ecosystems, func(i, j int) bool { return ecosystems[i] < ecosystems[j] })
+	for _, ecosystem := range ecosystems {
+		vulnCount := report.VulnsByEcosystem[ecosystem]
+		icon := configs.GetIconForEcosystem(ecosystem, s.Config.Ecosystem)
+		reportBlocks = append(reportBlocks, slack.NewSectionBlock(
+			slack.NewTextBlockObject(
+				slack.MarkdownType,
+				fmt.Sprintf("%s *%s:* %d", icon, caser.String(string(ecosystem)), vulnCount),
+				false, false,
+			),
+			nil, nil,
+		))
+	}
+
+	return reportBlocks
 }
