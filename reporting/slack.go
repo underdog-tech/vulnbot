@@ -253,7 +253,7 @@ func (s *SlackReporter) generateTeamReport(reportBlocks []slack.Block, teamSumma
 }
 
 func calculateTeamBreakdown(teamSummaries TeamSummaries) []TeamBreakdown {
-	teamsBreakdown := make([]TeamBreakdown, len(teamSummaries))
+	var teamsBreakdown []TeamBreakdown //nolint:prealloc
 
 	for team, summary := range teamSummaries {
 		teamsBreakdown = append(teamsBreakdown, TeamBreakdown{
@@ -275,9 +275,9 @@ func getIconForTeam(index int) string {
 }
 
 func (s *SlackReporter) generateSeverityBlocks(severityBreakdown map[configs.FindingSeverityType]int) []*slack.OptionBlockObject {
-	severities := configs.GetSeverityReportOrder()
-	severityBlocks := make([]*slack.OptionBlockObject, len(severities))
+	var severityBlocks []*slack.OptionBlockObject //nolint:prealloc
 
+	severities := configs.GetSeverityReportOrder()
 	for _, severityType := range severities {
 		severityIcon := configs.GetIconForSeverity(severityType, s.Config.Severity)
 		severityCount, exists := severityBreakdown[severityType]

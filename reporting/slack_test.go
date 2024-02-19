@@ -283,9 +283,7 @@ func TestBuildSlackSummaryReport(t *testing.T) {
 	expected, _ := json.Marshal(expected_data)
 	summary := reporter.BuildSummaryReport("OrgName Vulnbot Report", 13, report, test.TEST_REPORT_TIME, test.TEST_TEAM_SUMMARIES)
 	actual, _ := json.Marshal(summary)
-	expected_sting := string(expected)
-	actual_string := string(actual)
-	assert.JSONEq(t, expected_sting, actual_string)
+	assert.JSONEq(t, string(expected), string(actual))
 }
 
 func TestSendSlackSummaryReportSendsSingleMessage(t *testing.T) {
