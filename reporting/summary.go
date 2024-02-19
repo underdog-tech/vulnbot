@@ -132,6 +132,7 @@ func (r TeamProjectCollection) Swap(i, j int) {
 
 func (r TeamProjectCollection) GetTeamSummaryReport() *ProjectFindingSummary {
 	var summaryReport *ProjectFindingSummary
+
 	for _, repo := range r {
 		if repo.Project.Name == SUMMARY_KEY {
 			summaryReport = repo

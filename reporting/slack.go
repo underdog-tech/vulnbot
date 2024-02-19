@@ -277,8 +277,13 @@ func getIconForTeam(index int) string {
 func (s *SlackReporter) generateSeverityBlocks(severityBreakdown map[configs.FindingSeverityType]int) []*slack.OptionBlockObject {
 	var severityBlocks []*slack.OptionBlockObject
 
-	for severityType, severityCount := range severityBreakdown {
+	for _, severityType := range configs.GetSeverityReportOrder() {
 		severityIcon := configs.GetIconForSeverity(severityType, s.Config.Severity)
+		severityCount, exists := severityBreakdown[severityType]
+		if !exists {
+			continue
+		}
+
 		overflowOptionText := slack.NewTextBlockObject(slack.PlainTextType, fmt.Sprintf("%s %v %s",
 			severityIcon,
 			severityCount,
@@ -286,7 +291,6 @@ func (s *SlackReporter) generateSeverityBlocks(severityBreakdown map[configs.Fin
 		overflowOption := slack.NewOptionBlockObject("value", overflowOptionText, nil)
 		severityBlocks = append(severityBlocks, overflowOption)
 	}
-
 	return severityBlocks
 }
 
