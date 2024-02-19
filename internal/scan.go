@@ -68,10 +68,10 @@ func Scan(cmd *cobra.Command, args []string) {
 			if err != nil {
 				log.Error().Err(err).Type("currentReporter", currentReporter).Msg("Error sending summary report.")
 			}
-			// err = currentReporter.SendTeamReports(teamSummaries, reportTime, wg)
-			// if err != nil {
-			// 	log.Error().Err(err).Type("currentReporters", currentReporter).Msg("Error sending team reports.")
-			// }
+			err = currentReporter.SendTeamReports(teamSummaries, reportTime, wg)
+			if err != nil {
+				log.Error().Err(err).Type("currentReporters", currentReporter).Msg("Error sending team reports.")
+			}
 		}(reporter)
 	}
 	wg.Wait()
