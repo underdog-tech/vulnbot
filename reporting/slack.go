@@ -157,7 +157,7 @@ func (s *SlackReporter) BuildTeamReport(
 		),
 		slack.NewDividerBlock(),
 		slack.NewContextBlock("", slack.NewTextBlockObject(
-			slack.PlainTextType, reportTime.Format(time.RFC1123), false, false,
+			slack.PlainTextType, reportTime.Format(DATE_LAYOUT), false, false,
 		)),
 		slack.NewSectionBlock(
 			nil,

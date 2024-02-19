@@ -36,3 +36,6 @@ config.toml
 
 # VS code
 .vscode
+
+# Test
+coverage*
