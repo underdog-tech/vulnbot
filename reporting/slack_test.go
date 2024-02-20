@@ -462,3 +462,22 @@ func TestSendSlackTeamReportsSendsMessagePerTeam(t *testing.T) {
 
 	mockClient.AssertExpectations(t)
 }
+
+func TestGetVulnerabilityWord(t *testing.T) {
+	tests := []struct {
+		count    int
+		expected string
+	}{
+		{count: 0, expected: "vulnerability"},
+		{count: 1, expected: "vulnerability"},
+		{count: 2, expected: "vulnerabilities"},
+		{count: 100, expected: "vulnerabilities"},
+	}
+
+	for _, test := range tests {
+		result := reporting.GetVulnerabilityWord(test.count)
+		if result != test.expected {
+			t.Errorf("For count %d, got: %s, want: %s", test.count, result, test.expected)
+		}
+	}
+}

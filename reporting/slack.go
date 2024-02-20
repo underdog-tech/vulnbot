@@ -239,10 +239,11 @@ func (s *SlackReporter) generateTeamReport(reportBlocks []slack.Block, teamSumma
 		icon := getIconForTeam(i)
 		severityBlocks := s.generateSeverityBlocks(team.SeverityBreakdown)
 
+		count := team.TotalVulnerabilities
 		reportBlocks = append(reportBlocks, slack.NewSectionBlock(
 			slack.NewTextBlockObject(
 				slack.MarkdownType,
-				fmt.Sprintf("%s *%s:* %d vulnerabilities", icon, team.Name, team.TotalVulnerabilities),
+				fmt.Sprintf("%s *%s:* %d %s", icon, team.Name, count, GetVulnerabilityWord(count)),
 				false, false,
 			),
 			nil, slack.NewAccessory(slack.NewOverflowBlockElement("", severityBlocks...)),
@@ -343,4 +344,12 @@ func (s *SlackReporter) generateEcosystemReport(reportBlocks []slack.Block, repo
 	}
 
 	return reportBlocks
+}
+
+func GetVulnerabilityWord(count int) string {
+	word := "vulnerabilities"
+	if count == 0 || count == 1 {
+		word = "vulnerability"
+	}
+	return word
 }
