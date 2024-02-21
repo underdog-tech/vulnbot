@@ -6,8 +6,9 @@ import (
 	"sync"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/underdog-tech/vulnbot/config"
 	"golang.org/x/exp/maps"
+
+	"github.com/underdog-tech/vulnbot/configs"
 )
 
 type ProjectCollection struct {
@@ -28,7 +29,7 @@ type Project struct {
 	Name     string
 	Findings []*Finding
 	Links    map[string]string
-	Owners   mapset.Set[config.TeamConfig]
+	Owners   mapset.Set[configs.TeamConfig]
 	mu       sync.Mutex
 }
 
@@ -38,7 +39,7 @@ func NewProject(name string) *Project {
 		Name:     name,
 		Findings: []*Finding{},
 		Links:    map[string]string{},
-		Owners:   mapset.NewSet[config.TeamConfig](),
+		Owners:   mapset.NewSet[configs.TeamConfig](),
 	}
 }
 

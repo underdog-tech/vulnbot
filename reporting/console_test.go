@@ -9,8 +9,9 @@ import (
 
 	"github.com/gookit/color"
 	"github.com/stretchr/testify/assert"
-	"github.com/underdog-tech/vulnbot/config"
+	"github.com/underdog-tech/vulnbot/configs"
 	"github.com/underdog-tech/vulnbot/reporting"
+	"github.com/underdog-tech/vulnbot/test"
 )
 
 func TestSendConsoleSummaryReport(t *testing.T) {
@@ -18,18 +19,18 @@ func TestSendConsoleSummaryReport(t *testing.T) {
 	reader, writer, _ := os.Pipe()
 	os.Stdout = writer
 
-	reporter := reporting.ConsoleReporter{Config: &config.Config{}}
+	reporter := reporting.ConsoleReporter{Config: &configs.Config{}}
 	report := reporting.NewFindingSummary()
 	report.AffectedRepos = 2
 	report.TotalCount = 42
-	report.VulnsByEcosystem[config.FindingEcosystemPython] = 2
-	report.VulnsByEcosystem[config.FindingEcosystemJS] = 40
-	report.VulnsBySeverity[config.FindingSeverityCritical] = 10
-	report.VulnsBySeverity[config.FindingSeverityHigh] = 10
-	report.VulnsBySeverity[config.FindingSeverityModerate] = 10
-	report.VulnsBySeverity[config.FindingSeverityLow] = 12
-	severityColors := config.GetConsoleSeverityColors()
-	ecosystemIcons := config.GetConsoleEcosystemIcons()
+	report.VulnsByEcosystem[configs.FindingEcosystemPython] = 2
+	report.VulnsByEcosystem[configs.FindingEcosystemJS] = 40
+	report.VulnsBySeverity[configs.FindingSeverityCritical] = 10
+	report.VulnsBySeverity[configs.FindingSeverityHigh] = 10
+	report.VulnsBySeverity[configs.FindingSeverityModerate] = 10
+	report.VulnsBySeverity[configs.FindingSeverityLow] = 12
+	severityColors := configs.GetConsoleSeverityColors()
+	ecosystemIcons := configs.GetConsoleEcosystemIcons()
 	expected := fmt.Sprintf(`%s
 %s
 
@@ -48,20 +49,20 @@ Affected repositories: 2
 %s Python: 2
 `,
 		color.Bold.Sprint("OrgName Dependabot Report"),
-		color.Style{color.OpItalic}.Sprint(TEST_REPORT_TIME_FORMATTED),
+		color.Style{color.OpItalic}.Sprint(test.TEST_REPORT_TIME_FORMATTED),
 		color.Bold.Sprint("Breakdown by Severity"),
-		color.HEX(severityColors[config.FindingSeverityCritical]).Sprint("Critical"),
-		color.HEX(severityColors[config.FindingSeverityHigh]).Sprint("High"),
-		color.HEX(severityColors[config.FindingSeverityModerate]).Sprint("Moderate"),
-		color.HEX(severityColors[config.FindingSeverityLow]).Sprint("Low"),
+		color.HEX(severityColors[configs.FindingSeverityCritical]).Sprint("Critical"),
+		color.HEX(severityColors[configs.FindingSeverityHigh]).Sprint("High"),
+		color.HEX(severityColors[configs.FindingSeverityModerate]).Sprint("Moderate"),
+		color.HEX(severityColors[configs.FindingSeverityLow]).Sprint("Low"),
 		color.Bold.Sprint("Breakdown by Ecosystem"),
-		ecosystemIcons[config.FindingEcosystemJS],
-		ecosystemIcons[config.FindingEcosystemPython],
+		ecosystemIcons[configs.FindingEcosystemJS],
+		ecosystemIcons[configs.FindingEcosystemPython],
 	)
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	_ = reporter.SendSummaryReport("OrgName Dependabot Report", 13, report, TEST_REPORT_TIME, wg)
+	_ = reporter.SendSummaryReport("OrgName Dependabot Report", 13, report, test.TEST_REPORT_TIME, test.TEST_TEAM_SUMMARIES, wg)
 	writer.Close()
 	written, _ := io.ReadAll(reader)
 	os.Stdout = origStdout

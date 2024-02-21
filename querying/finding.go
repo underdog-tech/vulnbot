@@ -3,7 +3,7 @@ package querying
 import (
 	"sync"
 
-	"github.com/underdog-tech/vulnbot/config"
+	"github.com/underdog-tech/vulnbot/configs"
 )
 
 type FindingIdentifierType string
@@ -18,8 +18,8 @@ const (
 // example, a CVE. A [Project] must never have duplicates of the same Finding.
 type Finding struct {
 	Identifiers FindingIdentifierMap
-	Ecosystem   config.FindingEcosystemType
-	Severity    config.FindingSeverityType
+	Ecosystem   configs.FindingEcosystemType
+	Severity    configs.FindingSeverityType
 	Description string
 	PackageName string
 	mu          sync.Mutex

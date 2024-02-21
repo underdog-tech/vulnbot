@@ -1,4 +1,4 @@
-package config
+package configs
 
 import (
 	"fmt"
@@ -10,6 +10,8 @@ import (
 
 	"github.com/spf13/viper"
 )
+
+const DEFAULT_SLACK_ICON = " "
 
 type TeamConfig struct {
 	Name          string
@@ -89,22 +91,23 @@ func GetUserConfig(configFile string) (Config, error) {
 	return userCfg, nil
 }
 
-func GetIconForSeverity(severity FindingSeverityType, severities []SeverityConfig) (string, error) {
+func GetIconForSeverity(severity FindingSeverityType, severities []SeverityConfig) string {
 	for _, config := range severities {
 		if config.Label == SeverityNames[severity] {
-			return config.Slack_emoji, nil
+			return config.Slack_emoji
 		}
 	}
-	return "", fmt.Errorf("No Slack icon available for severity %s", SeverityNames[severity])
+	return DEFAULT_SLACK_ICON
+
 }
 
-func GetIconForEcosystem(ecosystem FindingEcosystemType, ecosystems []EcosystemConfig) (string, error) {
+func GetIconForEcosystem(ecosystem FindingEcosystemType, ecosystems []EcosystemConfig) string {
 	for _, config := range ecosystems {
 		if strings.ToLower(config.Label) == string(ecosystem) {
-			return config.Slack_emoji, nil
+			return config.Slack_emoji
 		}
 	}
-	return "", fmt.Errorf("No Slack icon available for ecosystem %s", ecosystem)
+	return DEFAULT_SLACK_ICON
 }
 
 func GetTeamConfigBySlug(teamSlug string, teams []TeamConfig) (TeamConfig, error) {

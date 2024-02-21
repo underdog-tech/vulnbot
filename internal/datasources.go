@@ -3,12 +3,12 @@ package internal
 import (
 	"sync"
 
-	"github.com/underdog-tech/vulnbot/config"
+	"github.com/underdog-tech/vulnbot/configs"
 	"github.com/underdog-tech/vulnbot/logger"
 	"github.com/underdog-tech/vulnbot/querying"
 )
 
-func GetDataSources(cfg *config.Config) []querying.DataSource {
+func GetDataSources(cfg *configs.Config) []querying.DataSource {
 	dataSources := []querying.DataSource{}
 
 	if cfg.Github_token != "" {

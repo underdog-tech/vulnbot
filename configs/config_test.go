@@ -1,4 +1,4 @@
-package config_test
+package configs
 
 import (
 	"fmt"
@@ -7,54 +7,51 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/underdog-tech/vulnbot/config"
 )
 
 func TestGetIconForConfiguredSeverity(t *testing.T) {
-	severities := []config.SeverityConfig{
+	severities := []SeverityConfig{
 		{Label: "High", Slack_emoji: ":high:"},
 		{Label: "Low", Slack_emoji: ":low:"},
 	}
-	icon, err := config.GetIconForSeverity(config.FindingSeverityHigh, severities)
+	icon := GetIconForSeverity(FindingSeverityHigh, severities)
 	assert.Equal(t, icon, ":high:")
-	assert.Nil(t, err)
 }
 
 func TestGetIconForUnconfiguredSeverity(t *testing.T) {
-	severities := []config.SeverityConfig{
+	severities := []SeverityConfig{
 		{Label: "High", Slack_emoji: ":high:"},
 		{Label: "Low", Slack_emoji: ":low:"},
 	}
-	icon, err := config.GetIconForSeverity(config.FindingSeverityModerate, severities)
-	assert.Empty(t, icon)
-	assert.Error(t, err)
+	icon := GetIconForSeverity(FindingSeverityModerate, severities)
+	assert.Equal(t, DEFAULT_SLACK_ICON, icon)
 }
 
 func TestGetIconForConfiguredEcosystem(t *testing.T) {
-	ecosystems := []config.EcosystemConfig{
+	ecosystems := []EcosystemConfig{
 		{Label: "Python", Slack_emoji: ":python:"},
 		{Label: "Go", Slack_emoji: ":golang:"},
 	}
-	icon, err := config.GetIconForEcosystem(config.FindingEcosystemPython, ecosystems)
+	icon := GetIconForEcosystem(FindingEcosystemPython, ecosystems)
 	assert.Equal(t, icon, ":python:")
-	assert.Nil(t, err)
+	assert.NotEqual(t, ":python:", DEFAULT_SLACK_ICON)
 }
 
 func TestGetConfiguredTeamConfigBySlug(t *testing.T) {
-	testersTeam := config.TeamConfig{Name: "Testers", Github_slug: "testers-team"}
-	failersTeam := config.TeamConfig{Name: "Failers", Github_slug: "failers-team"}
-	TeamConfigs := []config.TeamConfig{
+	testersTeam := TeamConfig{Name: "Testers", Github_slug: "testers-team"}
+	failersTeam := TeamConfig{Name: "Failers", Github_slug: "failers-team"}
+	TeamConfigs := []TeamConfig{
 		testersTeam,
 		failersTeam,
 	}
-	team, err := config.GetTeamConfigBySlug("testers-team", TeamConfigs)
+	team, err := GetTeamConfigBySlug("testers-team", TeamConfigs)
 	assert.Equal(t, team, testersTeam)
 	assert.Nil(t, err)
 }
 
 func TestGetUnconfiguredTeamConfigBySlug(t *testing.T) {
-	TeamConfigs := []config.TeamConfig{} // Empty is easiest for this purpose
-	team, err := config.GetTeamConfigBySlug("unknown-team", TeamConfigs)
+	TeamConfigs := []TeamConfig{} // Empty is easiest for this purpose
+	team, err := GetTeamConfigBySlug("unknown-team", TeamConfigs)
 	assert.Empty(t, team)
 	assert.Error(t, err)
 }
@@ -73,14 +70,14 @@ func TestGetUserConfigFromFile(t *testing.T) {
 	currentDir, err := getCurrentDir()
 	assert.Nil(t, err)
 	testDataPath := filepath.Join(currentDir, "/testdata/test_config.toml")
-	cfg, err := config.GetUserConfig(testDataPath)
+	cfg, err := GetUserConfig(testDataPath)
 	assert.Nil(t, err)
 	assert.Equal(t, "testing_slack_channel", cfg.Default_slack_channel)
-	assert.Equal(t, []config.EcosystemConfig{{Label: "Go", Slack_emoji: ":golang:"}}, cfg.Ecosystem)
+	assert.Equal(t, []EcosystemConfig{{Label: "Go", Slack_emoji: ":golang:"}}, cfg.Ecosystem)
 }
 
 func TestGetUserConfigFromEnv(t *testing.T) {
-	config.SetConfigDefaults()
+	SetConfigDefaults()
 
 	t.Setenv("VULNBOT_REPORTERS", "slack")
 	t.Setenv("VULNBOT_GITHUB_ORG", "hitchhikers")
@@ -90,7 +87,7 @@ func TestGetUserConfigFromEnv(t *testing.T) {
 	currentDir, err := getCurrentDir()
 	assert.Nil(t, err)
 	testDataPath := filepath.Join(currentDir, "/testdata/test_config.toml")
-	cfg, err := config.GetUserConfig(testDataPath)
+	cfg, err := GetUserConfig(testDataPath)
 	assert.Nil(t, err)
 
 	assert.Equal(t, []string{"slack"}, cfg.Reporters)

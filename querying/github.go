@@ -4,10 +4,11 @@ import (
 	"context"
 	"sync"
 
-	"github.com/shurcooL/githubv4"
-	"github.com/underdog-tech/vulnbot/config"
-	"github.com/underdog-tech/vulnbot/logger"
 	"golang.org/x/oauth2"
+
+	"github.com/shurcooL/githubv4"
+	"github.com/underdog-tech/vulnbot/configs"
+	"github.com/underdog-tech/vulnbot/logger"
 )
 
 type githubClient interface {
@@ -18,11 +19,11 @@ type githubClient interface {
 type GithubDataSource struct {
 	GhClient githubClient
 	orgName  string
-	conf     *config.Config
+	conf     *configs.Config
 	ctx      context.Context
 }
 
-func NewGithubDataSource(conf *config.Config) GithubDataSource {
+func NewGithubDataSource(conf *configs.Config) GithubDataSource {
 	ghTokenSource := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: conf.Github_token},
 	)
@@ -87,26 +88,26 @@ type orgVulnerabilityQuery struct {
 }
 
 // Ref: https://docs.github.com/en/graphql/reference/enums#securityadvisoryecosystem
-var githubEcosystems = map[string]config.FindingEcosystemType{
-	"ACTIONS":  config.FindingEcosystemGHA,
-	"COMPOSER": config.FindingEcosystemPHP,
-	"ERLANG":   config.FindingEcosystemErlang,
-	"GO":       config.FindingEcosystemGo,
-	"MAVEN":    config.FindingEcosystemJava,
-	"NPM":      config.FindingEcosystemJS,
-	"NUGET":    config.FindingEcosystemCSharp,
-	"PIP":      config.FindingEcosystemPython,
-	"PUB":      config.FindingEcosystemDart,
-	"RUBYGEMS": config.FindingEcosystemRuby,
-	"RUST":     config.FindingEcosystemRust,
-	"SWIFT":    config.FindingEcosystemSwift,
+var githubEcosystems = map[string]configs.FindingEcosystemType{
+	"ACTIONS":  configs.FindingEcosystemGHA,
+	"COMPOSER": configs.FindingEcosystemPHP,
+	"ERLANG":   configs.FindingEcosystemErlang,
+	"GO":       configs.FindingEcosystemGo,
+	"MAVEN":    configs.FindingEcosystemJava,
+	"NPM":      configs.FindingEcosystemJS,
+	"NUGET":    configs.FindingEcosystemCSharp,
+	"PIP":      configs.FindingEcosystemPython,
+	"PUB":      configs.FindingEcosystemDart,
+	"RUBYGEMS": configs.FindingEcosystemRuby,
+	"RUST":     configs.FindingEcosystemRust,
+	"SWIFT":    configs.FindingEcosystemSwift,
 }
 
-var githubSeverities = map[string]config.FindingSeverityType{
-	"CRITICAL": config.FindingSeverityCritical,
-	"HIGH":     config.FindingSeverityHigh,
-	"MODERATE": config.FindingSeverityModerate,
-	"LOW":      config.FindingSeverityLow,
+var githubSeverities = map[string]configs.FindingSeverityType{
+	"CRITICAL": configs.FindingSeverityCritical,
+	"HIGH":     configs.FindingSeverityHigh,
+	"MODERATE": configs.FindingSeverityModerate,
+	"LOW":      configs.FindingSeverityLow,
 }
 
 func (gh *GithubDataSource) CollectFindings(projects *ProjectCollection, wg *sync.WaitGroup) error {
@@ -245,9 +246,9 @@ func (gh *GithubDataSource) gatherRepoOwners(projects *ProjectCollection) {
 			log.Fatal().Err(err).Msg("Failed to query GitHub for repository ownership.")
 		}
 		for _, team := range ownerQuery.Organization.Teams.Nodes {
-			teamConfig, err := config.GetTeamConfigBySlug(team.Slug, gh.conf.Team)
+			teamConfig, err := configs.GetTeamConfigBySlug(team.Slug, gh.conf.Team)
 			if err != nil {
-				log.Warn().Err(err).Str("slug", team.Slug).Msg("Failed to load team from config.")
+				log.Warn().Err(err).Str("slug", team.Slug).Msg("Failed to load team from configs.")
 				continue
 			}
 			// TODO: Handle pagination of repositories owned by a team

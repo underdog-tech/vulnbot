@@ -1,15 +1,16 @@
 package internal
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
-	"github.com/underdog-tech/vulnbot/config"
-	"github.com/underdog-tech/vulnbot/logger"
-	"github.com/underdog-tech/vulnbot/reporting"
-
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
+
+	"github.com/underdog-tech/vulnbot/configs"
+	"github.com/underdog-tech/vulnbot/logger"
+	"github.com/underdog-tech/vulnbot/reporting"
 )
 
 func Scan(cmd *cobra.Command, args []string) {
@@ -17,7 +18,7 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	// Load the configuration from file, CLI, and env
 	configPath := getString(cmd.Flags(), "config")
-	cfg, err := config.GetUserConfig(configPath)
+	cfg, err := configs.GetUserConfig(configPath)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load configuration.")
 	}
@@ -55,11 +56,13 @@ func Scan(cmd *cobra.Command, args []string) {
 	for _, reporter := range reporters {
 		wg.Add(2)
 		go func(currentReporter reporting.Reporter) {
+			summaryReportHeader := fmt.Sprintf("%s %s %s", ":robot_face:", "Vulnbot Summary Report", ":robot_face:")
 			err := currentReporter.SendSummaryReport(
-				"Vulnbot Summary Report",
+				summaryReportHeader,
 				len(projects.Projects),
 				summary,
 				reportTime,
+				teamSummaries,
 				wg,
 			)
 			if err != nil {
