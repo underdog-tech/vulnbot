@@ -28,7 +28,7 @@ type ProjectCollection struct {
 type Project struct {
 	Name     string
 	Findings []*Finding
-	Links    map[string]string
+	Link    string
 	Owners   mapset.Set[configs.TeamConfig]
 	mu       sync.Mutex
 }
@@ -38,7 +38,6 @@ func NewProject(name string) *Project {
 	return &Project{
 		Name:     name,
 		Findings: []*Finding{},
-		Links:    map[string]string{},
 		Owners:   mapset.NewSet[configs.TeamConfig](),
 	}
 }

@@ -305,9 +305,7 @@ func TestSendSlackSummaryReportSendsSingleMessage(t *testing.T) {
 func TestBuildSlackTeamRepositoryReport(t *testing.T) {
 	reporter := reporting.SlackReporter{Config: &configs.Config{}}
 	proj := querying.NewProject("foo")
-	proj.Links = map[string]string{
-		"GitHub": "https://github.com/bar/foo",
-	}
+	proj.Link = "https://github.com/bar/foo"
 	report := reporting.NewProjectFindingSummary(proj)
 	report.VulnsByEcosystem[configs.FindingEcosystemPython] = 15
 	report.VulnsBySeverity[configs.FindingSeverityCritical] = 2

@@ -37,9 +37,7 @@ func getTestProject() querying.ProjectCollection {
 		Projects: []*querying.Project{
 			{
 				Name: "zaphod",
-				Links: map[string]string{
-					"GitHub": "https://heart-of-gold/zaphod/security/dependabot",
-				},
+				Link: "https://heart-of-gold/zaphod/security/dependabot",
 				Findings: []*querying.Finding{
 					{
 						Ecosystem:   configs.FindingEcosystemGo,
