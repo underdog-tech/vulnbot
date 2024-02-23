@@ -13,7 +13,7 @@ import (
 	"github.com/underdog-tech/vulnbot/logger"
 )
 
-const internalTopicKeyword = "internal"
+const DisableVulnBotTopicKeyword = "disable-vulnbot"
 
 type githubClient interface {
 	Query(context.Context, interface{}, map[string]interface{}) error
@@ -192,7 +192,7 @@ func (gh *GithubDataSource) processRepoOwners(ownerQuery *orgRepoOwnerQuery, pro
 			continue
 		}
 		for _, repo := range team.Repositories.Edges {
-			shouldIgnoreRepo := repo.Node.IsArchived || repo.Node.IsFork || hasInternalTopic(repo.Node.RepositoryTopics)
+			shouldIgnoreRepo := repo.Node.IsArchived || repo.Node.IsFork || hasDisableVulnbotTopic(repo.Node.RepositoryTopics)
 			if shouldIgnoreRepo {
 				log.Debug().
 					Str("Repo", repo.Node.Name).
@@ -212,10 +212,10 @@ func (gh *GithubDataSource) processRepoOwners(ownerQuery *orgRepoOwnerQuery, pro
 	}
 }
 
-// Function to check if the repository has "internal" in its topics
-func hasInternalTopic(repoTopics repositoryTopics) bool {
+// Function to check if the repository has "disable-vulnbot" in its topics
+func hasDisableVulnbotTopic(repoTopics repositoryTopics) bool {
 	for _, edge := range repoTopics.Edges {
-		if strings.Contains(strings.ToLower(edge.Node.Topic.Name), internalTopicKeyword) {
+		if strings.Contains(strings.ToLower(edge.Node.Topic.Name), DisableVulnBotTopicKeyword) {
 			return true
 		}
 	}
