@@ -317,7 +317,7 @@ func TestBuildSlackTeamRepositoryReport(t *testing.T) {
 		"fields": []map[string]interface{}{
 			{
 				"type": "mrkdwn",
-				"text": "  *foo* · [<https://github.com/bar/foo|GitHub>]",
+				"text": "  *<https://github.com/bar/foo|foo>*",
 			},
 			{
 				"type": "mrkdwn",
