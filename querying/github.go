@@ -175,7 +175,8 @@ func (gh *GithubDataSource) gatherRepoOwners(projects *ProjectCollection) {
 			}
 			// TODO: Handle pagination of repositories owned by a team
 			for _, repo := range team.Repositories.Edges {
-				if repo.Node.IsArchived || repo.Node.IsFork || hasInternalTopic(repo.Node.RepositoryTopics) {
+				shouldIgnoreRepo := repo.Node.IsArchived || repo.Node.IsFork || hasInternalTopic(repo.Node.RepositoryTopics)
+				if shouldIgnoreRepo {
 					log.Debug().Str("Repo", repo.Node.Name).Bool("IsFork", repo.Node.IsFork).Bool("IsArchived", repo.Node.IsArchived).Msg("Skipping untracked repository.")
 					continue
 				}
