@@ -2,14 +2,18 @@ package querying
 
 import (
 	"context"
+	"strings"
 	"sync"
 
 	"golang.org/x/oauth2"
 
+	"github.com/rs/zerolog"
 	"github.com/shurcooL/githubv4"
 	"github.com/underdog-tech/vulnbot/configs"
 	"github.com/underdog-tech/vulnbot/logger"
 )
+
+const DisableVulnBotTopicKeyword = "disable-vulnbot"
 
 type githubClient interface {
 	Query(context.Context, interface{}, map[string]interface{}) error
@@ -36,55 +40,6 @@ func NewGithubDataSource(conf *configs.Config) GithubDataSource {
 		conf:     conf,
 		ctx:      context.Background(),
 	}
-}
-
-type githubVulnerability struct {
-	SecurityAdvisory struct {
-		Description string
-		Identifiers []struct {
-			Type  string
-			Value string
-		}
-	}
-	SecurityVulnerability struct {
-		Severity string
-		Package  struct {
-			Ecosystem string
-			Name      string
-		}
-	}
-}
-
-type orgRepo struct {
-	Name                string
-	Url                 string
-	VulnerabilityAlerts struct {
-		TotalCount int
-		PageInfo   struct {
-			EndCursor   githubv4.String
-			HasNextPage bool
-		}
-		Nodes []githubVulnerability
-	} `graphql:"vulnerabilityAlerts(states: OPEN, first: 100, after: $alertCursor)"`
-}
-
-type repositoryQuery struct {
-	Repository orgRepo `graphql:"repository(name: $repoName, owner: $orgName)"`
-}
-
-type orgVulnerabilityQuery struct {
-	Organization struct {
-		Name         string
-		Login        string
-		Repositories struct {
-			TotalCount int
-			PageInfo   struct {
-				EndCursor   githubv4.String
-				HasNextPage bool
-			}
-			Nodes []orgRepo
-		} `graphql:"repositories(orderBy: {field: NAME, direction: ASC}, isFork: false, isArchived: false, first: 100, after: $repoCursor)"`
-	} `graphql:"organization(login: $login)"`
 }
 
 // Ref: https://docs.github.com/en/graphql/reference/enums#securityadvisoryecosystem
@@ -150,7 +105,7 @@ func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, rep
 
 	// Link directly to Dependabot findings.
 	// There doesn't appear to be a GraphQL property for this link.
-	project.Links["GitHub"] = repo.Url + "/security/dependabot"
+	project.Link = repo.Url + "/security/dependabot"
 
 	log.Debug().Str("project", project.Name).Msg("Processing findings for project.")
 
@@ -198,38 +153,6 @@ func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, rep
 	return nil
 }
 
-type orgTeam struct {
-	Name         string
-	Slug         string
-	Repositories struct {
-		PageInfo struct {
-			EndCursor   githubv4.String
-			HasNextPage bool
-		}
-		Edges []struct {
-			Permission string
-			Node       struct {
-				Name       string
-				IsFork     bool
-				IsArchived bool
-			}
-		}
-	} `graphql:"repositories(orderBy: {field: NAME, direction: ASC}, first: 100, after: $repoCursor)"`
-}
-
-type orgRepoOwnerQuery struct {
-	Organization struct {
-		Teams struct {
-			TotalCount int
-			PageInfo   struct {
-				EndCursor   githubv4.String
-				HasNextPage bool
-			}
-			Nodes []orgTeam
-		} `graphql:"teams(orderBy: {field: NAME, direction: ASC}, first: 100, after: $teamCursor)"`
-	} `graphql:"organization(login: $login)"`
-}
-
 func (gh *GithubDataSource) gatherRepoOwners(projects *ProjectCollection) {
 	var ownerQuery orgRepoOwnerQuery
 	log := logger.Get()
@@ -242,33 +165,59 @@ func (gh *GithubDataSource) gatherRepoOwners(projects *ProjectCollection) {
 
 	for {
 		log.Info().Msg("Querying GitHub API for repository ownership information.")
-		if err := gh.GhClient.Query(gh.ctx, &ownerQuery, queryVars); err != nil {
+		if err := gh.queryRepoOwners(&ownerQuery, queryVars); err != nil {
 			log.Fatal().Err(err).Msg("Failed to query GitHub for repository ownership.")
 		}
-		for _, team := range ownerQuery.Organization.Teams.Nodes {
-			teamConfig, err := configs.GetTeamConfigBySlug(team.Slug, gh.conf.Team)
-			if err != nil {
-				log.Warn().Err(err).Str("slug", team.Slug).Msg("Failed to load team from configs.")
-				continue
-			}
-			// TODO: Handle pagination of repositories owned by a team
-			for _, repo := range team.Repositories.Edges {
-				if repo.Node.IsArchived || repo.Node.IsFork {
-					log.Debug().Str("Repo", repo.Node.Name).Bool("IsFork", repo.Node.IsFork).Bool("IsArchived", repo.Node.IsArchived).Msg("Skipping untracked repository.")
-					continue
-				}
-				switch repo.Permission {
-				case "ADMIN", "MAINTAIN":
-					project := projects.GetProject(repo.Node.Name)
-					project.Owners.Add(teamConfig)
-				default:
-					continue
-				}
-			}
-		}
+
+		gh.processRepoOwners(&ownerQuery, projects, log)
 		if !ownerQuery.Organization.Teams.PageInfo.HasNextPage {
 			break
 		}
 		queryVars["teamCursor"] = githubv4.NewString(ownerQuery.Organization.Teams.PageInfo.EndCursor)
 	}
+}
+
+func (gh *GithubDataSource) queryRepoOwners(ownerQuery *orgRepoOwnerQuery, queryVars map[string]interface{}) error {
+	if err := gh.GhClient.Query(gh.ctx, ownerQuery, queryVars); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (gh *GithubDataSource) processRepoOwners(ownerQuery *orgRepoOwnerQuery, projects *ProjectCollection, log zerolog.Logger) {
+	for _, team := range ownerQuery.Organization.Teams.Nodes {
+		teamConfig, err := configs.GetTeamConfigBySlug(team.Slug, gh.conf.Team)
+		if err != nil {
+			log.Warn().Err(err).Str("slug", team.Slug).Msg("Failed to load team from configs.")
+			continue
+		}
+		for _, repo := range team.Repositories.Edges {
+			shouldIgnoreRepo := repo.Node.IsArchived || repo.Node.IsFork || hasDisableVulnbotTopic(repo.Node.RepositoryTopics)
+			if shouldIgnoreRepo {
+				log.Debug().
+					Str("Repo", repo.Node.Name).
+					Bool("IsFork", repo.Node.IsFork).
+					Bool("IsArchived", repo.Node.IsArchived).
+					Msg("Skipping untracked repository.")
+				continue
+			}
+			switch repo.Permission {
+			case "ADMIN", "MAINTAIN":
+				project := projects.GetProject(repo.Node.Name)
+				project.Owners.Add(teamConfig)
+			default:
+				continue
+			}
+		}
+	}
+}
+
+// Function to check if the repository has "disable-vulnbot" in its topics
+func hasDisableVulnbotTopic(repoTopics repositoryTopics) bool {
+	for _, edge := range repoTopics.Edges {
+		if strings.Contains(strings.ToLower(edge.Node.Topic.Name), DisableVulnBotTopicKeyword) {
+			return true
+		}
+	}
+	return false
 }

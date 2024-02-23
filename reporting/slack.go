@@ -111,14 +111,8 @@ func (s *SlackReporter) BuildTeamRepositoryReport(
 	if severityIcon == "" {
 		severityIcon = configs.GetIconForSeverity(configs.FindingSeverityUndefined, s.Config.Severity)
 	}
-	projLinks := make([]string, 0)
-	for title, link := range repoReport.Project.Links {
-		projLinks = append(projLinks, fmt.Sprintf("[<%s|%s>]", link, title))
-	}
-	projName := fmt.Sprintf("%s *%s*", severityIcon, repoReport.Project.Name)
-	if len(projLinks) > 0 {
-		projName = fmt.Sprintf("%s · %s", projName, strings.Join(projLinks, " "))
-	}
+
+	projName := fmt.Sprintf("%s *<%s|%s>*", severityIcon, repoReport.Project.Link, repoReport.Project.Name)
 	fields := []*slack.TextBlockObject{
 		slack.NewTextBlockObject(slack.MarkdownType, projName, false, false),
 		slack.NewTextBlockObject(slack.MarkdownType, strings.Join(vulnCounts, " | "), false, false),
