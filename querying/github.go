@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/rs/zerolog"
 	"github.com/shurcooL/githubv4"
 	"github.com/underdog-tech/vulnbot/configs"
 	"github.com/underdog-tech/vulnbot/logger"
@@ -164,35 +165,50 @@ func (gh *GithubDataSource) gatherRepoOwners(projects *ProjectCollection) {
 
 	for {
 		log.Info().Msg("Querying GitHub API for repository ownership information.")
-		if err := gh.GhClient.Query(gh.ctx, &ownerQuery, queryVars); err != nil {
+		if err := gh.queryRepoOwners(&ownerQuery, queryVars); err != nil {
 			log.Fatal().Err(err).Msg("Failed to query GitHub for repository ownership.")
 		}
-		for _, team := range ownerQuery.Organization.Teams.Nodes {
-			teamConfig, err := configs.GetTeamConfigBySlug(team.Slug, gh.conf.Team)
-			if err != nil {
-				log.Warn().Err(err).Str("slug", team.Slug).Msg("Failed to load team from configs.")
-				continue
-			}
-			// TODO: Handle pagination of repositories owned by a team
-			for _, repo := range team.Repositories.Edges {
-				shouldIgnoreRepo := repo.Node.IsArchived || repo.Node.IsFork || hasInternalTopic(repo.Node.RepositoryTopics)
-				if shouldIgnoreRepo {
-					log.Debug().Str("Repo", repo.Node.Name).Bool("IsFork", repo.Node.IsFork).Bool("IsArchived", repo.Node.IsArchived).Msg("Skipping untracked repository.")
-					continue
-				}
-				switch repo.Permission {
-				case "ADMIN", "MAINTAIN":
-					project := projects.GetProject(repo.Node.Name)
-					project.Owners.Add(teamConfig)
-				default:
-					continue
-				}
-			}
-		}
+
+		gh.processRepoOwners(&ownerQuery, projects, log)
 		if !ownerQuery.Organization.Teams.PageInfo.HasNextPage {
 			break
 		}
 		queryVars["teamCursor"] = githubv4.NewString(ownerQuery.Organization.Teams.PageInfo.EndCursor)
+	}
+}
+
+func (gh *GithubDataSource) queryRepoOwners(ownerQuery *orgRepoOwnerQuery, queryVars map[string]interface{}) error {
+	if err := gh.GhClient.Query(gh.ctx, ownerQuery, queryVars); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (gh *GithubDataSource) processRepoOwners(ownerQuery *orgRepoOwnerQuery, projects *ProjectCollection, log zerolog.Logger) {
+	for _, team := range ownerQuery.Organization.Teams.Nodes {
+		teamConfig, err := configs.GetTeamConfigBySlug(team.Slug, gh.conf.Team)
+		if err != nil {
+			log.Warn().Err(err).Str("slug", team.Slug).Msg("Failed to load team from configs.")
+			continue
+		}
+		for _, repo := range team.Repositories.Edges {
+			shouldIgnoreRepo := repo.Node.IsArchived || repo.Node.IsFork || hasInternalTopic(repo.Node.RepositoryTopics)
+			if shouldIgnoreRepo {
+				log.Debug().
+					Str("Repo", repo.Node.Name).
+					Bool("IsFork", repo.Node.IsFork).
+					Bool("IsArchived", repo.Node.IsArchived).
+					Msg("Skipping untracked repository.")
+				continue
+			}
+			switch repo.Permission {
+			case "ADMIN", "MAINTAIN":
+				project := projects.GetProject(repo.Node.Name)
+				project.Owners.Add(teamConfig)
+			default:
+				continue
+			}
+		}
 	}
 }
 
