@@ -466,7 +466,7 @@ func TestGetVulnerabilityWord(t *testing.T) {
 		count    int
 		expected string
 	}{
-		{count: 0, expected: "vulnerability"},
+		{count: 0, expected: "vulnerabilities"},
 		{count: 1, expected: "vulnerability"},
 		{count: 2, expected: "vulnerabilities"},
 		{count: 100, expected: "vulnerabilities"},
