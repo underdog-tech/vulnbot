@@ -132,7 +132,7 @@ func TestBuildSlackSummaryReport(t *testing.T) {
 				"type": "section",
 				"text": map[string]interface{}{
 					"type": "mrkdwn",
-					"text": ":first_place_medal: *Team Foo:* 0 vulnerability",
+					"text": ":first_place_medal: *Team Foo:* 0 vulnerabilities",
 				},
 				"accessory": map[string]interface{}{
 					"type": "overflow",
