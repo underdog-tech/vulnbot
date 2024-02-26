@@ -342,7 +342,7 @@ func (s *SlackReporter) generateEcosystemReport(reportBlocks []slack.Block, repo
 
 func GetVulnerabilityWord(count int) string {
 	word := "vulnerabilities"
-	if count == 0 || count == 1 {
+	if count == 1 {
 		word = "vulnerability"
 	}
 	return word
