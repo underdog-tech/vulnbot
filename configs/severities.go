@@ -20,6 +20,15 @@ var SeverityNames = map[FindingSeverityType]string{
 	FindingSeverityUndefined: "Undefined",
 }
 
+var SeverityString = map[string]FindingSeverityType{
+	"critical": FindingSeverityCritical,
+	"high": FindingSeverityHigh,
+	"medium": FindingSeverityModerate,
+	"low": FindingSeverityLow,
+	"info": FindingSeverityInfo,
+	"undefined": FindingSeverityUndefined,
+}
+
 // NewSeverityMap returns a map of finding severities all associated with a
 // value of 0, meant to be populated with a count of findings in the relevant
 // scope. Notably, this map does not include either "Info" or "Undefined"
