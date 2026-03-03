@@ -30,39 +30,31 @@ func NewCodeQLDataSource(conf *configs.Config) CodeQLDataSource {
 }
 
 func (cql *CodeQLDataSource) CollectFindings(projects *ProjectCollection, wg *sync.WaitGroup) error {
-	// var alertQuery orgVulnerabilityQuery
 	log := logger.Get()
 	defer wg.Done()
 
-	iter := cql.GhClient.Repositories.ListByOrgIter(cql.ctx, cql.orgName, nil)
-	for repo, err := range iter {
+	iter := cql.GhClient.CodeScanning.ListAlertsForOrgIter(
+		cql.ctx,
+		cql.orgName,
+		&github.AlertListOptions{State: Open},
+	)
+
+	for alert, err := range iter {
 		if err != nil {
 			log.Error().Err(err).Msg("GitHub list alerts request failed!")
 			return err
 		}
 
-		project := projects.GetProject(*repo.Name)
+		project := projects.GetProject(*alert.Repository.Name)
 
-		iter := cql.GhClient.CodeScanning.ListAlertsForRepoIter(cql.ctx, cql.orgName, *repo.Name, nil)
-		for alert, err := range iter {
-			if err != nil {
-				log.Error().Err(err).Msg("GitHub list alerts request failed!")
-				continue
-			}
-			if *alert.State == Open {
-				fmt.Printf("%s, %s, %s\n", *alert.HTMLURL, *alert.Rule.Description, *alert.Rule.SecuritySeverityLevel)
-				if severity, ok := configs.SeverityString[*alert.Rule.SecuritySeverityLevel]; !ok {
-					log.Error().Err(err).Msg("Unhandled severity type")
-				} else {
-					finding := &Finding{
-						Description: *alert.Rule.Description,
-						Severity:    configs.FindingSeverityType(severity),
-					}
-					fmt.Println(finding)
-					project.Findings = append(project.Findings, finding)
-				}
-			}
+		finding := &Finding{
+			Description: *alert.Rule.Description,
+			Severity: configs.FindingSeverityType(
+				configs.SeverityString[*alert.Rule.SecuritySeverityLevel],
+			),
+			// Ecosystem: *alert.Repository.Lan,
 		}
+		project.Findings = append(project.Findings, finding)
 	}
 	return nil
 }
