@@ -2,7 +2,7 @@ package querying
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"sync"
 
 	"github.com/google/go-github/v84/github"
@@ -12,6 +12,10 @@ import (
 )
 
 const Open = "open"
+
+type CodeQLEnvironment struct {
+	Language string `json:"language"`
+}
 
 type CodeQLDataSource struct {
 	GhClient *github.Client
@@ -47,12 +51,18 @@ func (cql *CodeQLDataSource) CollectFindings(projects *ProjectCollection, wg *sy
 
 		project := projects.GetProject(*alert.Repository.Name)
 
+		codeQLEnv := &CodeQLEnvironment{}
+		if err := json.Unmarshal([]byte(*alert.MostRecentInstance.Environment), codeQLEnv); err != nil {
+			log.Error().Err(err).Msg("Failed to unmarshall alert environment json")
+			continue
+		}
+
 		finding := &Finding{
 			Description: *alert.Rule.Description,
 			Severity: configs.FindingSeverityType(
 				configs.SeverityString[*alert.Rule.SecuritySeverityLevel],
 			),
-			// Ecosystem: *alert.Repository.Lan,
+			Ecosystem: configs.FindingEcosystemType(codeQLEnv.Language),
 		}
 		project.Findings = append(project.Findings, finding)
 	}
