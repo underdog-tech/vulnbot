@@ -37,6 +37,12 @@ func (cql *CodeQLDataSource) CollectFindings(projects *ProjectCollection, wg *sy
 	log := logger.Get()
 	defer wg.Done()
 
+	repoNameToTeamConfig, err := cql.getRepoNameToTeamConfig()
+	if err != nil {
+		log.Error().Err(err).Msg("GitHub list repos by slug request failed!")
+		return err
+	}
+
 	iter := cql.GhClient.CodeScanning.ListAlertsForOrgIter(
 		cql.ctx,
 		cql.orgName,
@@ -49,22 +55,51 @@ func (cql *CodeQLDataSource) CollectFindings(projects *ProjectCollection, wg *sy
 			return err
 		}
 
+		finding, err := cql.processFinding(alert)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to process alert")
+			return err
+		}
+
 		project := projects.GetProject(*alert.Repository.Name)
-
-		codeQLEnv := &CodeQLEnvironment{}
-		if err := json.Unmarshal([]byte(*alert.MostRecentInstance.Environment), codeQLEnv); err != nil {
-			log.Error().Err(err).Msg("Failed to unmarshall alert environment json")
-			continue
-		}
-
-		finding := &Finding{
-			Description: *alert.Rule.Description,
-			Severity: configs.FindingSeverityType(
-				configs.SeverityString[*alert.Rule.SecuritySeverityLevel],
-			),
-			Ecosystem: configs.FindingEcosystemType(codeQLEnv.Language),
-		}
 		project.Findings = append(project.Findings, finding)
+
+		team, ok := repoNameToTeamConfig[*alert.Repository.Name]
+		if !ok {
+			log.Error().Err(err).Msg("Failed to find team config in repository team map")
+			return err
+		}
+		project.Owners.Add(team)
 	}
+
 	return nil
+}
+
+func (cql *CodeQLDataSource) processFinding(alert *github.Alert) (*Finding, error) {
+	codeQLEnv := &CodeQLEnvironment{}
+	if err := json.Unmarshal([]byte(*alert.MostRecentInstance.Environment), codeQLEnv); err != nil {
+		return nil, err
+	}
+	return &Finding{
+		Description: *alert.Rule.Description,
+		Severity: configs.FindingSeverityType(
+			configs.SeverityString[*alert.Rule.SecuritySeverityLevel],
+		),
+		Ecosystem: configs.FindingEcosystemType(codeQLEnv.Language),
+	}, nil
+}
+
+// Maps repository names to their corresponding team configs based on the GH team slug.
+func (cql *CodeQLDataSource) getRepoNameToTeamConfig() (map[string]configs.TeamConfig, error) {
+	repoNameToTeamConfig := make(map[string]configs.TeamConfig)
+	for _, team := range cql.conf.Team {
+		slugIter := cql.GhClient.Teams.ListTeamReposBySlugIter(cql.ctx, cql.orgName, team.Github_slug, nil)
+		for repo, err := range slugIter {
+			if err != nil {
+				return repoNameToTeamConfig, err
+			}
+			repoNameToTeamConfig[*repo.Name] = team
+		}
+	}
+	return repoNameToTeamConfig, nil
 }
