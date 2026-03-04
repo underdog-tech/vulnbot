@@ -39,3 +39,5 @@ config.toml
 
 # Test
 coverage*
+
+bin/
