@@ -35,7 +35,6 @@ func (g *GhClient) ListTeamReposBySlugIter(ctx context.Context, org string, slug
 	return g.client.Teams.ListTeamReposBySlugIter(ctx, org, slug, opts)
 }
 
-
 type CodeQLDataSource struct {
 	GhClient Client
 	orgName  string
@@ -48,12 +47,14 @@ func NewCodeQLDataSource(conf *configs.Config) CodeQLDataSource {
 		GhClient: &GhClient{
 			client: github.NewClient(nil).WithAuthToken(conf.Github_token),
 		},
-		orgName:  conf.Github_org,
-		conf:     conf,
-		ctx:      context.Background(),
+		orgName: conf.Github_org,
+		conf:    conf,
+		ctx:     context.Background(),
 	}
 }
 
+// Queries the org for all CodeQL alerts and processes them as Finding objects within individual Project objects.
+// In addition we determine the team owner of each project if we do not have it yet.
 func (cql *CodeQLDataSource) CollectFindings(projects *ProjectCollection, wg *sync.WaitGroup) error {
 	log := logger.Get()
 	defer wg.Done()

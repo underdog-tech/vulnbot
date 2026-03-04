@@ -34,16 +34,35 @@ func (m *MockClient) ListTeamReposBySlugIter(ctx context.Context, org string, sl
 	return args.Get(0).(iter.Seq2[*github.Repository, error])
 }
 
-func TestCollectFindings(t *testing.T) {
+func getMockAlert() *github.Alert {
 	mockRepo := "link"
+	mockAlertEnv := "{\"build-mode\":\"none\",\"category\":\"/language:python\",\"language\":\"python\",\"runner\":\"[\\\"ubuntu-latest\\\"]\"}"
 	mockSeverity := "high"
 	mockDescription := "A pretty important alert"
-	mockAlertEnv := "{\"build-mode\":\"none\",\"category\":\"/language:python\",\"language\":\"python\",\"runner\":\"[\\\"ubuntu-latest\\\"]\"}"
+	return &github.Alert{
+		MostRecentInstance: &github.MostRecentInstance{
+			Environment: &mockAlertEnv,
+		},
+		Repository: &github.Repository{Name: &mockRepo},
+		Rule: &github.Rule{
+			SecuritySeverityLevel: &mockSeverity,
+			Description:           &mockDescription,
+		},
+	}
+}
 
-	mockTeam := configs.TeamConfig{
+func getMockTeam() configs.TeamConfig {
+	return configs.TeamConfig{
 		Name:        "Team One",
 		Github_slug: mockTeamSlug,
 	}
+}
+
+func TestCollectFindings(t *testing.T) {
+	mockRepo := "link"
+	mockDescription := "A pretty important alert"
+
+	mockTeam := getMockTeam()
 	conf := &configs.Config{
 		Team: []configs.TeamConfig{mockTeam},
 	}
@@ -52,18 +71,8 @@ func TestCollectFindings(t *testing.T) {
 	mockRepoMap := map[*github.Repository]error{
 		{Name: &mockRepo}: nil,
 	}
-	mockAlertsByOrg := map[*github.Alert]error{
-		{
-			MostRecentInstance: &github.MostRecentInstance{
-				Environment: &mockAlertEnv,
-			},
-			Repository: &github.Repository{Name: &mockRepo},
-			Rule: &github.Rule{
-				SecuritySeverityLevel: &mockSeverity,
-				Description:           &mockDescription,
-			},
-		}: nil,
-	}
+	mockAlert := getMockAlert()
+	mockAlertsByOrg := map[*github.Alert]error{mockAlert: nil}
 
 	cql := &CodeQLDataSource{
 		GhClient: mockClient,
@@ -101,7 +110,6 @@ func TestCollectFindings(t *testing.T) {
 }
 
 func TestProcessFinding(t *testing.T) {
-	mockSeverity := "high"
 	mockDescription := "A pretty important alert"
 	expectedFinding := &Finding{
 		Description: mockDescription,
@@ -117,17 +125,8 @@ func TestProcessFinding(t *testing.T) {
 		conf:     conf,
 		ctx:      testContext,
 	}
-	mockAlertEnv := "{\"build-mode\":\"none\",\"category\":\"/language:python\",\"language\":\"python\",\"runner\":\"[\\\"ubuntu-latest\\\"]\"}"
 
-	mockAlert := &github.Alert{
-		MostRecentInstance: &github.MostRecentInstance{
-			Environment: &mockAlertEnv,
-		},
-		Rule: &github.Rule{
-			SecuritySeverityLevel: &mockSeverity,
-			Description:           &mockDescription,
-		},
-	}
+	mockAlert := getMockAlert()
 
 	finding, err := cql.processFinding(mockAlert)
 
@@ -137,10 +136,7 @@ func TestProcessFinding(t *testing.T) {
 
 func TestGetRepoNameToTeamConfig(t *testing.T) {
 	mockRepo := "link"
-	mockTeam := configs.TeamConfig{
-		Name:        "Team One",
-		Github_slug: mockTeamSlug,
-	}
+	mockTeam := getMockTeam()
 	conf := &configs.Config{
 		Team: []configs.TeamConfig{mockTeam},
 	}
