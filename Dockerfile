@@ -1,5 +1,5 @@
 # We want to build on a canonical Golang image to easily use the latest/greatest
-FROM golang:1.20 AS build
+FROM golang:1.25.7 AS build
 
 WORKDIR /app
 
