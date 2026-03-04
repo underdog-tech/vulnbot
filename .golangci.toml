@@ -1,13 +1,39 @@
+version = '2'
+
 [linters]
 enable = [
-    "cyclop",
-    "gochecknoinits",
-    "gocognit",
-    "gosec",
-    "nilnil",
-    "prealloc",
-    "zerologlint",
+  'cyclop',
+  'gochecknoinits',
+  'gocognit',
+  'gosec',
+  'nilnil',
+  'prealloc',
+  'zerologlint'
 ]
 
-[linters-settings.cyclop]
+[linters.settings]
+[linters.settings.cyclop]
 max-complexity = 11
+
+[linters.exclusions]
+generated = 'lax'
+presets = [
+  'comments',
+  'common-false-positives',
+  'legacy',
+  'std-error-handling'
+]
+paths = [
+  'third_party$',
+  'builtin$',
+  'examples$'
+]
+
+[formatters]
+[formatters.exclusions]
+generated = 'lax'
+paths = [
+  'third_party$',
+  'builtin$',
+  'examples$'
+]

@@ -1,0 +1,13 @@
+[linters]
+enable = [
+    "cyclop",
+    "gochecknoinits",
+    "gocognit",
+    "gosec",
+    "nilnil",
+    "prealloc",
+    "zerologlint",
+]
+
+[linters-settings.cyclop]
+max-complexity = 11

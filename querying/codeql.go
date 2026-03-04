@@ -88,7 +88,7 @@ func (cql *CodeQLDataSource) CollectFindings(projects *ProjectCollection, wg *sy
 
 		team, ok := repoNameToTeamConfig[*alert.Repository.Name]
 		if !ok {
-			log.Error().Err(err).Msg("Failed to find team config in repository team map")
+			log.Error().Err(err).Str("repository", *alert.Repository.Name).Msg("Failed to find team config in repository team map")
 			return err
 		}
 		project.Owners.Add(team)
