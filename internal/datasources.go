@@ -12,8 +12,8 @@ func GetDataSources(cfg *configs.Config) []querying.DataSource {
 	dataSources := []querying.DataSource{}
 
 	if cfg.Github_token != "" {
-		// ghds := querying.NewGithubDataSource(cfg)
-		// dataSources = append(dataSources, &ghds)
+		ghds := querying.NewGithubDataSource(cfg)
+		dataSources = append(dataSources, &ghds)
 
 		cqlds := querying.NewCodeQLDataSource(cfg)
 		dataSources = append(dataSources, &cqlds)

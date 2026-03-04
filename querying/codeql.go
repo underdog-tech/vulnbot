@@ -3,6 +3,7 @@ package querying
 import (
 	"context"
 	"encoding/json"
+	"iter"
 	"sync"
 
 	"github.com/google/go-github/v84/github"
@@ -17,8 +18,26 @@ type CodeQLEnvironment struct {
 	Language string `json:"language"`
 }
 
+type Client interface {
+	ListAlertsForOrgIter(ctx context.Context, org string, opts *github.AlertListOptions) iter.Seq2[*github.Alert, error]
+	ListTeamReposBySlugIter(ctx context.Context, org string, slug string, opts *github.ListOptions) iter.Seq2[*github.Repository, error]
+}
+
+type GhClient struct {
+	client *github.Client
+}
+
+func (g *GhClient) ListAlertsForOrgIter(ctx context.Context, org string, opts *github.AlertListOptions) iter.Seq2[*github.Alert, error] {
+	return g.client.CodeScanning.ListAlertsForOrgIter(ctx, org, opts)
+}
+
+func (g *GhClient) ListTeamReposBySlugIter(ctx context.Context, org string, slug string, opts *github.ListOptions) iter.Seq2[*github.Repository, error] {
+	return g.client.Teams.ListTeamReposBySlugIter(ctx, org, slug, opts)
+}
+
+
 type CodeQLDataSource struct {
-	GhClient *github.Client
+	GhClient Client
 	orgName  string
 	conf     *configs.Config
 	ctx      context.Context
@@ -26,7 +45,9 @@ type CodeQLDataSource struct {
 
 func NewCodeQLDataSource(conf *configs.Config) CodeQLDataSource {
 	return CodeQLDataSource{
-		GhClient: github.NewClient(nil).WithAuthToken(conf.Github_token),
+		GhClient: &GhClient{
+			client: github.NewClient(nil).WithAuthToken(conf.Github_token),
+		},
 		orgName:  conf.Github_org,
 		conf:     conf,
 		ctx:      context.Background(),
@@ -43,7 +64,7 @@ func (cql *CodeQLDataSource) CollectFindings(projects *ProjectCollection, wg *sy
 		return err
 	}
 
-	iter := cql.GhClient.CodeScanning.ListAlertsForOrgIter(
+	iter := cql.GhClient.ListAlertsForOrgIter(
 		cql.ctx,
 		cql.orgName,
 		&github.AlertListOptions{State: Open},
@@ -93,7 +114,7 @@ func (cql *CodeQLDataSource) processFinding(alert *github.Alert) (*Finding, erro
 func (cql *CodeQLDataSource) getRepoNameToTeamConfig() (map[string]configs.TeamConfig, error) {
 	repoNameToTeamConfig := make(map[string]configs.TeamConfig)
 	for _, team := range cql.conf.Team {
-		slugIter := cql.GhClient.Teams.ListTeamReposBySlugIter(cql.ctx, cql.orgName, team.Github_slug, nil)
+		slugIter := cql.GhClient.ListTeamReposBySlugIter(cql.ctx, cql.orgName, team.Github_slug, nil)
 		for repo, err := range slugIter {
 			if err != nil {
 				return repoNameToTeamConfig, err

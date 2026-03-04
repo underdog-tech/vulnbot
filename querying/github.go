@@ -2,7 +2,6 @@ package querying
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 
@@ -113,7 +112,6 @@ func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, rep
 	for _, vuln := range repo.VulnerabilityAlerts.Nodes {
 		identifiers := FindingIdentifierMap{}
 		for _, id := range vuln.SecurityAdvisory.Identifiers {
-			fmt.Println(FindingIdentifierType(id.Type))
 			identifiers[FindingIdentifierType(id.Type)] = id.Value
 		}
 		log.Debug().Any("identifiers", identifiers).Msg("Processing finding.")
