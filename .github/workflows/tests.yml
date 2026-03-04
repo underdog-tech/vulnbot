@@ -36,8 +36,8 @@ jobs:
         go: ["1.25"]
         os:
           [
-            "windows-2019",
             "windows-2022",
+            "windows-2025",
             "ubuntu-20.04",
             "ubuntu-22.04",
             "macos-14",
