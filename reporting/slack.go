@@ -215,7 +215,7 @@ func (s *SlackReporter) SendSlackMessage(channel string, message slack.MsgOption
 // NewSlackReporter returns a new SlackReporter instance for reporting out findings to a Slack server
 func NewSlackReporter(cfg *configs.Config) (SlackReporter, error) {
 	if cfg.Slack_auth_token == "" {
-		return SlackReporter{}, errors.New("No Slack token was provided!")
+		return SlackReporter{}, errors.New("no Slack token was provided")
 	}
 	client := slack.New(cfg.Slack_auth_token, slack.OptionDebug(true))
 	return SlackReporter{Config: cfg, Client: client}, nil

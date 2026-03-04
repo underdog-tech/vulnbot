@@ -91,9 +91,9 @@ func NewProjectFindingSummary(project *querying.Project) ProjectFindingSummary {
 func SummarizeFindings(projects *querying.ProjectCollection) (FindingSummary, []ProjectFindingSummary) {
 	affectedRepos, vulnCount := 0, 0
 	summary := NewFindingSummary()
-	projectReportCollection := []ProjectFindingSummary{}
+	projectReportCollection := make([]ProjectFindingSummary, len(projects.Projects))
 
-	for _, project := range projects.Projects {
+	for i, project := range projects.Projects {
 		projectReport := NewProjectFindingSummary(project)
 		if numFindings := len(project.Findings); numFindings > 0 {
 			affectedRepos += 1
@@ -110,7 +110,7 @@ func SummarizeFindings(projects *querying.ProjectCollection) (FindingSummary, []
 				projectReport.VulnsBySeverity[finding.Severity] += 1
 			}
 		}
-		projectReportCollection = append(projectReportCollection, projectReport)
+		projectReportCollection[i] = projectReport
 	}
 	summary.AffectedRepos = affectedRepos
 	summary.TotalCount = vulnCount
