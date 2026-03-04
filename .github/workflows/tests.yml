@@ -29,6 +29,7 @@ jobs:
           platforms: ${{ matrix.arch }}
           push: false
           target: test
+          no-cache: true
 
   build:
     strategy:
