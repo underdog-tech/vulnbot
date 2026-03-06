@@ -103,9 +103,9 @@ func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, rep
 	log := logger.Get()
 	project := projects.GetProject(repo.Name)
 
-	// Link directly to Dependabot findings.
+	// Link directly to security page.
 	// There doesn't appear to be a GraphQL property for this link.
-	project.Link = repo.Url + "/security/dependabot"
+	project.Link = repo.Url + "/security"
 
 	log.Debug().Str("project", project.Name).Msg("Processing findings for project.")
 

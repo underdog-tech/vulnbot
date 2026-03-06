@@ -2,6 +2,7 @@ package querying
 
 import (
 	"context"
+	"fmt"
 	"iter"
 	"maps"
 	"sync"
@@ -16,8 +17,11 @@ import (
 )
 
 const (
-	mockOrgName  = "fake-org"
-	mockTeamSlug = "fake-slug"
+	mockOrgName      = "fake-org"
+	mockTeamSlug     = "fake-slug"
+	mockDescription  = "A pretty important alert"
+	mockRepoUrl      = "https://github.com/underdog-tech/link"
+	mockSecurityPath = "security"
 )
 
 type MockClient struct {
@@ -38,15 +42,16 @@ func getMockAlert() *github.Alert {
 	mockRepo := "link"
 	mockAlertEnv := "{\"build-mode\":\"none\",\"category\":\"/language:python\",\"language\":\"python\",\"runner\":\"[\\\"ubuntu-latest\\\"]\"}"
 	mockSeverity := "high"
-	mockDescription := "A pretty important alert"
+	mockDescriptionVar := mockDescription
+	mockRepoUrlVar := mockRepoUrl
 	return &github.Alert{
 		MostRecentInstance: &github.MostRecentInstance{
 			Environment: &mockAlertEnv,
 		},
-		Repository: &github.Repository{Name: &mockRepo},
+		Repository: &github.Repository{Name: &mockRepo, HTMLURL: &mockRepoUrlVar},
 		Rule: &github.Rule{
 			SecuritySeverityLevel: &mockSeverity,
-			Description:           &mockDescription,
+			Description:           &mockDescriptionVar,
 		},
 	}
 }
@@ -97,6 +102,7 @@ func TestCollectFindings(t *testing.T) {
 				Severity:    configs.FindingSeverityHigh,
 			},
 		},
+		Link:   fmt.Sprintf("%s/%s", mockRepoUrl, mockSecurityPath),
 		Owners: mapset.NewSet(mockTeam),
 	}
 	mockProjects := &ProjectCollection{}

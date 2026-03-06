@@ -3,6 +3,7 @@ package querying
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"iter"
 	"sync"
 
@@ -85,6 +86,7 @@ func (cql *CodeQLDataSource) CollectFindings(projects *ProjectCollection, wg *sy
 
 		project := projects.GetProject(*alert.Repository.Name)
 		project.Findings = append(project.Findings, finding)
+		project.Link = fmt.Sprintf("%s/%s", *alert.Repository.HTMLURL, "security")
 
 		team, ok := repoNameToTeamConfig[*alert.Repository.Name]
 		if !ok {
