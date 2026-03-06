@@ -116,5 +116,5 @@ func GetTeamConfigBySlug(teamSlug string, teams []TeamConfig) (TeamConfig, error
 			return team, nil
 		}
 	}
-	return TeamConfig{}, fmt.Errorf("No config found for team %s", teamSlug)
+	return TeamConfig{}, fmt.Errorf("no config found for team %s", teamSlug)
 }

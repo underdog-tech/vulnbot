@@ -1,9 +1,10 @@
 module github.com/underdog-tech/vulnbot
 
-go 1.20
+go 1.25.7
 
 require (
 	github.com/deckarep/golang-set/v2 v2.3.0
+	github.com/google/go-github/v84 v84.0.0
 	github.com/gookit/color v1.5.3
 	github.com/rs/zerolog v1.29.1
 	github.com/shurcooL/githubv4 v0.0.0-20230424031643-6cea62ecd5a9
@@ -14,14 +15,14 @@ require (
 	github.com/stretchr/testify v1.8.3
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	golang.org/x/oauth2 v0.8.0
-	golang.org/x/text v0.13.0
+	golang.org/x/text v0.26.0
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
-	github.com/gdexlab/go-render v1.0.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
