@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/underdog-tech/vulnbot/configs"
+	"github.com/underdog-tech/vulnbot/logger"
 )
 
 const (
@@ -141,6 +142,7 @@ func TestProcessFinding(t *testing.T) {
 }
 
 func TestGetRepoNameToTeamConfig(t *testing.T) {
+	testLogger := logger.Get()
 	mockRepo := "link"
 	mockTeam := getMockTeam()
 	conf := &configs.Config{
@@ -163,12 +165,11 @@ func TestGetRepoNameToTeamConfig(t *testing.T) {
 		maps.All(mockRepoMap),
 	)
 
-	actualRepoNameToTeamConfig, err := cql.getRepoNameToTeamConfig()
+	actualRepoNameToTeamConfig := cql.getRepoNameToTeamConfig(testLogger)
 
 	expectedRepoNameToTeamConfig := map[string]configs.TeamConfig{
 		mockRepo: mockTeam,
 	}
-	assert.NoError(t, err)
 	assert.Equal(t, expectedRepoNameToTeamConfig, actualRepoNameToTeamConfig)
 
 	mockClient.AssertExpectations(t)
