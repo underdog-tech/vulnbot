@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/google/go-github/v84/github"
+	"github.com/rs/zerolog"
 
 	"github.com/underdog-tech/vulnbot/configs"
 	"github.com/underdog-tech/vulnbot/logger"
@@ -60,11 +61,7 @@ func (cql *CodeQLDataSource) CollectFindings(projects *ProjectCollection, wg *sy
 	log := logger.Get()
 	defer wg.Done()
 
-	repoNameToTeamConfig, err := cql.getRepoNameToTeamConfig()
-	if err != nil {
-		log.Error().Err(err).Msg("GitHub list repos by slug request failed!")
-		return err
-	}
+	repoNameToTeamConfig := cql.getRepoNameToTeamConfig(log)
 
 	iter := cql.GhClient.ListAlertsForOrgIter(
 		cql.ctx,
@@ -114,16 +111,17 @@ func (cql *CodeQLDataSource) processFinding(alert *github.Alert) (*Finding, erro
 }
 
 // Maps repository names to their corresponding team configs based on the GH team slug.
-func (cql *CodeQLDataSource) getRepoNameToTeamConfig() (map[string]configs.TeamConfig, error) {
+func (cql *CodeQLDataSource) getRepoNameToTeamConfig(log zerolog.Logger) map[string]configs.TeamConfig {
 	repoNameToTeamConfig := make(map[string]configs.TeamConfig)
 	for _, team := range cql.conf.Team {
 		slugIter := cql.GhClient.ListTeamReposBySlugIter(cql.ctx, cql.orgName, team.Github_slug, nil)
 		for repo, err := range slugIter {
 			if err != nil {
-				return repoNameToTeamConfig, err
+				log.Error().Err(err).Str("team_name", team.Name).Msg("Failed to find owned repos for team")
+			} else {
+				repoNameToTeamConfig[*repo.Name] = team
 			}
-			repoNameToTeamConfig[*repo.Name] = team
 		}
 	}
-	return repoNameToTeamConfig, nil
+	return repoNameToTeamConfig
 }
