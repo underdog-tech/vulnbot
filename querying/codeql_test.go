@@ -68,15 +68,13 @@ func TestCollectFindings(t *testing.T) {
 	mockRepo := "link"
 	mockDescription := "A pretty important alert"
 
-	mockTeam := getMockTeam()
+	adminTeam := getMockTeam()
+	maintainTeam := configs.TeamConfig{Name: "Team Two", Github_slug: "team-two"}
 	conf := &configs.Config{
-		Team: []configs.TeamConfig{mockTeam},
+		Team: []configs.TeamConfig{adminTeam, maintainTeam},
 	}
 	mockClient := &MockClient{}
 	testContext := context.Background()
-	mockRepoMap := map[*github.Repository]error{
-		{Name: &mockRepo}: nil,
-	}
 	mockAlert := getMockAlert()
 	mockAlertsByOrg := map[*github.Alert]error{mockAlert: nil}
 
@@ -90,8 +88,15 @@ func TestCollectFindings(t *testing.T) {
 	mockClient.On("ListAlertsForOrgIter", testContext, mockOrgName, &github.AlertListOptions{State: Open}).Return(
 		maps.All(mockAlertsByOrg),
 	)
-	mockClient.On("ListTeamReposBySlugIter", testContext, mockOrgName, mockTeamSlug, nil).Return(
-		maps.All(mockRepoMap),
+	mockClient.On("ListTeamReposBySlugIter", testContext, mockOrgName, adminTeam.Github_slug, nil).Return(
+		maps.All(map[*github.Repository]error{
+			{Name: &mockRepo, Permissions: &github.RepositoryPermissions{Admin: github.Ptr(true)}}: nil,
+		}),
+	)
+	mockClient.On("ListTeamReposBySlugIter", testContext, mockOrgName, maintainTeam.Github_slug, nil).Return(
+		maps.All(map[*github.Repository]error{
+			{Name: &mockRepo, Permissions: &github.RepositoryPermissions{Maintain: github.Ptr(true)}}: nil,
+		}),
 	)
 
 	expectedProject := &Project{
@@ -104,7 +109,7 @@ func TestCollectFindings(t *testing.T) {
 			},
 		},
 		Link:   fmt.Sprintf("%s/%s", mockRepoUrl, mockSecurityPath),
-		Owners: mapset.NewSet(mockTeam),
+		Owners: mapset.NewSet(adminTeam, maintainTeam),
 	}
 	mockProjects := &ProjectCollection{}
 	wg := new(sync.WaitGroup)
@@ -141,36 +146,124 @@ func TestProcessFinding(t *testing.T) {
 	assert.Equal(t, expectedFinding, finding)
 }
 
-func TestGetRepoNameToTeamConfig(t *testing.T) {
+func TestGetRepoNameToTeamConfigs(t *testing.T) {
 	testLogger := logger.Get()
 	mockRepo := "link"
-	mockTeam := getMockTeam()
-	conf := &configs.Config{
-		Team: []configs.TeamConfig{mockTeam},
-	}
-	mockClient := &MockClient{}
+	adminTeam := getMockTeam()
+	maintainTeam := configs.TeamConfig{Name: "Team Two", Github_slug: "team-two"}
+	pushTeam := configs.TeamConfig{Name: "Team Three", Github_slug: "team-three"}
 	testContext := context.Background()
-	mockRepoMap := map[*github.Repository]error{
-		{Name: &mockRepo}: nil,
+
+	tests := map[string][]configs.TeamConfig{
+		"configured order":          {adminTeam, maintainTeam, pushTeam},
+		"reversed configured order": {pushTeam, maintainTeam, adminTeam},
+	}
+	for name, teams := range tests {
+		t.Run(name, func(t *testing.T) {
+			conf := &configs.Config{Team: teams}
+			mockClient := &MockClient{}
+			cql := &CodeQLDataSource{
+				GhClient: mockClient,
+				orgName:  mockOrgName,
+				conf:     conf,
+				ctx:      testContext,
+			}
+
+			teamRepos := map[string]*github.Repository{
+				adminTeam.Github_slug: {
+					Name:        &mockRepo,
+					Permissions: &github.RepositoryPermissions{Admin: github.Ptr(true)},
+				},
+				maintainTeam.Github_slug: {
+					Name:        &mockRepo,
+					Permissions: &github.RepositoryPermissions{Maintain: github.Ptr(true)},
+				},
+				pushTeam.Github_slug: {
+					Name:        &mockRepo,
+					Permissions: &github.RepositoryPermissions{Push: github.Ptr(true)},
+				},
+			}
+			for _, team := range teams {
+				mockClient.On("ListTeamReposBySlugIter", testContext, mockOrgName, team.Github_slug, nil).Return(
+					maps.All(map[*github.Repository]error{teamRepos[team.Github_slug]: nil}),
+				)
+			}
+
+			actualRepoNameToTeamConfigs := cql.getRepoNameToTeamConfigs(testLogger)
+
+			expectedRepoNameToTeamConfigs := map[string]mapset.Set[configs.TeamConfig]{
+				mockRepo: mapset.NewSet(adminTeam, maintainTeam),
+			}
+			assert.Equal(t, expectedRepoNameToTeamConfigs, actualRepoNameToTeamConfigs)
+			mockClient.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetRepoNameToTeamConfigsExcludesUntrackedRepositories(t *testing.T) {
+	team := getMockTeam()
+	testContext := context.Background()
+	adminPermissions := &github.RepositoryPermissions{Admin: github.Ptr(true)}
+
+	tests := map[string]struct {
+		repository *github.Repository
+		excluded   bool
+	}{
+		"active repository": {
+			repository: &github.Repository{
+				Name:        github.Ptr("active"),
+				Permissions: adminPermissions,
+			},
+		},
+		"archived repository": {
+			repository: &github.Repository{
+				Name:        github.Ptr("archived"),
+				Archived:    github.Ptr(true),
+				Permissions: adminPermissions,
+			},
+			excluded: true,
+		},
+		"forked repository": {
+			repository: &github.Repository{
+				Name:        github.Ptr("forked"),
+				Fork:        github.Ptr(true),
+				Permissions: adminPermissions,
+			},
+			excluded: true,
+		},
+		"disabled by topic": {
+			repository: &github.Repository{
+				Name:        github.Ptr("disabled"),
+				Topics:      []string{"prefix-DiSaBlE-VuLnBoT-suffix"},
+				Permissions: adminPermissions,
+			},
+			excluded: true,
+		},
 	}
 
-	cql := &CodeQLDataSource{
-		GhClient: mockClient,
-		orgName:  mockOrgName,
-		conf:     conf,
-		ctx:      testContext,
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mockClient := &MockClient{}
+			cql := &CodeQLDataSource{
+				GhClient: mockClient,
+				orgName:  mockOrgName,
+				conf:     &configs.Config{Team: []configs.TeamConfig{team}},
+				ctx:      testContext,
+			}
+			mockClient.On("ListTeamReposBySlugIter", testContext, mockOrgName, team.Github_slug, nil).Return(
+				maps.All(map[*github.Repository]error{test.repository: nil}),
+			)
+
+			actual := cql.getRepoNameToTeamConfigs(logger.Get())
+
+			if test.excluded {
+				assert.Empty(t, actual)
+			} else {
+				assert.Equal(t, map[string]mapset.Set[configs.TeamConfig]{
+					test.repository.GetName(): mapset.NewSet(team),
+				}, actual)
+			}
+			mockClient.AssertExpectations(t)
+		})
 	}
-
-	mockClient.On("ListTeamReposBySlugIter", testContext, mockOrgName, mockTeamSlug, nil).Return(
-		maps.All(mockRepoMap),
-	)
-
-	actualRepoNameToTeamConfig := cql.getRepoNameToTeamConfig(testLogger)
-
-	expectedRepoNameToTeamConfig := map[string]configs.TeamConfig{
-		mockRepo: mockTeam,
-	}
-	assert.Equal(t, expectedRepoNameToTeamConfig, actualRepoNameToTeamConfig)
-
-	mockClient.AssertExpectations(t)
 }

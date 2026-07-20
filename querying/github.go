@@ -2,7 +2,6 @@ package querying
 
 import (
 	"context"
-	"strings"
 	"sync"
 
 	"golang.org/x/oauth2"
@@ -12,8 +11,6 @@ import (
 	"github.com/underdog-tech/vulnbot/configs"
 	"github.com/underdog-tech/vulnbot/logger"
 )
-
-const DisableVulnBotTopicKeyword = "disable-vulnbot"
 
 type githubClient interface {
 	Query(context.Context, interface{}, map[string]interface{}) error
@@ -192,8 +189,11 @@ func (gh *GithubDataSource) processRepoOwners(ownerQuery *orgRepoOwnerQuery, pro
 			continue
 		}
 		for _, repo := range team.Repositories.Edges {
-			shouldIgnoreRepo := repo.Node.IsArchived || repo.Node.IsFork || hasDisableVulnbotTopic(repo.Node.RepositoryTopics)
-			if shouldIgnoreRepo {
+			if shouldIgnoreRepository(
+				repo.Node.IsArchived,
+				repo.Node.IsFork,
+				repo.Node.RepositoryTopics.names(),
+			) {
 				log.Debug().
 					Str("Repo", repo.Node.Name).
 					Bool("IsFork", repo.Node.IsFork).
@@ -210,14 +210,4 @@ func (gh *GithubDataSource) processRepoOwners(ownerQuery *orgRepoOwnerQuery, pro
 			}
 		}
 	}
-}
-
-// Function to check if the repository has "disable-vulnbot" in its topics
-func hasDisableVulnbotTopic(repoTopics repositoryTopics) bool {
-	for _, edge := range repoTopics.Edges {
-		if strings.Contains(strings.ToLower(edge.Node.Topic.Name), DisableVulnBotTopicKeyword) {
-			return true
-		}
-	}
-	return false
 }
