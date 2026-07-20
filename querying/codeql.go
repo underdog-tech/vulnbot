@@ -7,6 +7,7 @@ import (
 	"iter"
 	"sync"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/go-github/v84/github"
 	"github.com/rs/zerolog"
 
@@ -61,7 +62,7 @@ func (cql *CodeQLDataSource) CollectFindings(projects *ProjectCollection, wg *sy
 	log := logger.Get()
 	defer wg.Done()
 
-	repoNameToTeamConfig := cql.getRepoNameToTeamConfig(log)
+	repoNameToTeamConfigs := cql.getRepoNameToTeamConfigs(log)
 
 	iter := cql.GhClient.ListAlertsForOrgIter(
 		cql.ctx,
@@ -85,12 +86,15 @@ func (cql *CodeQLDataSource) CollectFindings(projects *ProjectCollection, wg *sy
 		project.Findings = append(project.Findings, finding)
 		project.Link = fmt.Sprintf("%s/%s", *alert.Repository.HTMLURL, "security")
 
-		team, ok := repoNameToTeamConfig[*alert.Repository.Name]
+		teams, ok := repoNameToTeamConfigs[*alert.Repository.Name]
 		if !ok {
-			log.Warn().Err(err).Str("repository", *alert.Repository.Name).Msg("Failed to find team config in repository team map")
+			log.Warn().Str("repository", *alert.Repository.Name).Msg("Failed to find team config in repository team map")
 			continue
 		}
-		project.Owners.Add(team)
+		teamIter := teams.Iterator()
+		for team := range teamIter.C {
+			project.Owners.Add(team)
+		}
 	}
 
 	return nil
@@ -110,18 +114,24 @@ func (cql *CodeQLDataSource) processFinding(alert *github.Alert) (*Finding, erro
 	}, nil
 }
 
-// Maps repository names to their corresponding team configs based on the GH team slug.
-func (cql *CodeQLDataSource) getRepoNameToTeamConfig(log zerolog.Logger) map[string]configs.TeamConfig {
-	repoNameToTeamConfig := make(map[string]configs.TeamConfig)
+// Maps repository names to all configured teams with administrative or maintenance access.
+func (cql *CodeQLDataSource) getRepoNameToTeamConfigs(log zerolog.Logger) map[string]mapset.Set[configs.TeamConfig] {
+	repoNameToTeamConfigs := make(map[string]mapset.Set[configs.TeamConfig])
 	for _, team := range cql.conf.Team {
 		slugIter := cql.GhClient.ListTeamReposBySlugIter(cql.ctx, cql.orgName, team.Github_slug, nil)
 		for repo, err := range slugIter {
 			if err != nil {
 				log.Error().Err(err).Str("team_name", team.Name).Msg("Failed to find owned repos for team")
-			} else {
-				repoNameToTeamConfig[*repo.Name] = team
+				continue
 			}
+			if repo.Permissions == nil || (!repo.Permissions.GetAdmin() && !repo.Permissions.GetMaintain()) {
+				continue
+			}
+			if _, ok := repoNameToTeamConfigs[repo.GetName()]; !ok {
+				repoNameToTeamConfigs[repo.GetName()] = mapset.NewSet[configs.TeamConfig]()
+			}
+			repoNameToTeamConfigs[repo.GetName()].Add(team)
 		}
 	}
-	return repoNameToTeamConfig
+	return repoNameToTeamConfigs
 }
