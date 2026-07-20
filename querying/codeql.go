@@ -124,6 +124,14 @@ func (cql *CodeQLDataSource) getRepoNameToTeamConfigs(log zerolog.Logger) map[st
 				log.Error().Err(err).Str("team_name", team.Name).Msg("Failed to find owned repos for team")
 				continue
 			}
+			if shouldIgnoreRepository(repo.GetArchived(), repo.GetFork(), repo.Topics) {
+				log.Debug().
+					Str("repository", repo.GetName()).
+					Bool("is_fork", repo.GetFork()).
+					Bool("is_archived", repo.GetArchived()).
+					Msg("Skipping untracked repository.")
+				continue
+			}
 			if repo.Permissions == nil || (!repo.Permissions.GetAdmin() && !repo.Permissions.GetMaintain()) {
 				continue
 			}

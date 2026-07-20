@@ -29,6 +29,14 @@ type repositoryTopics struct {
 	}
 }
 
+func (topics repositoryTopics) names() []string {
+	names := make([]string, 0, len(topics.Edges))
+	for _, edge := range topics.Edges {
+		names = append(names, edge.Node.Topic.Name)
+	}
+	return names
+}
+
 type orgRepo struct {
 	Name                string
 	Url                 string

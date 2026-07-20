@@ -199,3 +199,71 @@ func TestGetRepoNameToTeamConfigs(t *testing.T) {
 		})
 	}
 }
+
+func TestGetRepoNameToTeamConfigsExcludesUntrackedRepositories(t *testing.T) {
+	team := getMockTeam()
+	testContext := context.Background()
+	adminPermissions := &github.RepositoryPermissions{Admin: github.Ptr(true)}
+
+	tests := map[string]struct {
+		repository *github.Repository
+		excluded   bool
+	}{
+		"active repository": {
+			repository: &github.Repository{
+				Name:        github.Ptr("active"),
+				Permissions: adminPermissions,
+			},
+		},
+		"archived repository": {
+			repository: &github.Repository{
+				Name:        github.Ptr("archived"),
+				Archived:    github.Ptr(true),
+				Permissions: adminPermissions,
+			},
+			excluded: true,
+		},
+		"forked repository": {
+			repository: &github.Repository{
+				Name:        github.Ptr("forked"),
+				Fork:        github.Ptr(true),
+				Permissions: adminPermissions,
+			},
+			excluded: true,
+		},
+		"disabled by topic": {
+			repository: &github.Repository{
+				Name:        github.Ptr("disabled"),
+				Topics:      []string{"prefix-DiSaBlE-VuLnBoT-suffix"},
+				Permissions: adminPermissions,
+			},
+			excluded: true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mockClient := &MockClient{}
+			cql := &CodeQLDataSource{
+				GhClient: mockClient,
+				orgName:  mockOrgName,
+				conf:     &configs.Config{Team: []configs.TeamConfig{team}},
+				ctx:      testContext,
+			}
+			mockClient.On("ListTeamReposBySlugIter", testContext, mockOrgName, team.Github_slug, nil).Return(
+				maps.All(map[*github.Repository]error{test.repository: nil}),
+			)
+
+			actual := cql.getRepoNameToTeamConfigs(logger.Get())
+
+			if test.excluded {
+				assert.Empty(t, actual)
+			} else {
+				assert.Equal(t, map[string]mapset.Set[configs.TeamConfig]{
+					test.repository.GetName(): mapset.NewSet(team),
+				}, actual)
+			}
+			mockClient.AssertExpectations(t)
+		})
+	}
+}
