@@ -177,7 +177,7 @@ func (c *NotionClient) request(method string, path string, body interface{}) ([]
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Notion request failed: %w", err)
+		return nil, fmt.Errorf("failed to send Notion request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -187,7 +187,7 @@ func (c *NotionClient) request(method string, path string, body interface{}) ([]
 	}
 
 	if resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("Notion API returned status %d: %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("notion API returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	return respBody, nil
@@ -850,8 +850,9 @@ func notionRepoToggleBlock(repo *ProjectFindingSummary) map[string]interface{} {
 		notionPlainTextSpan(fmt.Sprintf(" - %s", strings.Join(vulnCounts, " | "))),
 	}
 
-	severityToggles := make([]map[string]interface{}, 0)
-	for _, group := range groupFindingsBySeverity(repo.Project.Findings) {
+	groups := groupFindingsBySeverity(repo.Project.Findings)
+	severityToggles := make([]map[string]interface{}, 0, len(groups))
+	for _, group := range groups {
 		severityTitle := fmt.Sprintf("%s (%d)", SeverityNames[group.Severity], len(group.Findings))
 		severityToggles = append(severityToggles, notionToggleBlock(
 			[]map[string]interface{}{notionPlainTextSpan(severityTitle)},

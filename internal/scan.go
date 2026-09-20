@@ -35,38 +35,13 @@ func Scan(cmd *cobra.Command, args []string) {
 	summary, projectSummaries := reporting.SummarizeFindings(projects)
 	teamSummaries := reporting.GroupTeamFindings(projects, projectSummaries)
 
-	// Load and report out to all configured reporters
-	reporters := []reporting.Reporter{}
-
-	// Tracked separately (not just via the reporters slice above) so its
-	// repo-ownership sync - a Notion-specific capability outside the
-	// standard Reporter interface - can be dispatched below. See
-	// SendRepoOwnershipReport's own comment for why this isn't just
-	// another SendSummaryReport/SendTeamReports call.
-	var notionReporter *reporting.NotionReporter
-
-	if slices.Contains(cfg.Reporters, "slack") {
-		slackReporter, err := reporting.NewSlackReporter(&cfg)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to create Slack reporter.")
-		} else {
-			reporters = append(reporters, &slackReporter)
-		}
-	}
-
-	if slices.Contains(cfg.Reporters, "notion") {
-		nr, err := reporting.NewNotionReporter(&cfg)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to create Notion reporter.")
-		} else {
-			reporters = append(reporters, &nr)
-			notionReporter = &nr
-		}
-	}
-
-	if slices.Contains(cfg.Reporters, "console") {
-		reporters = append(reporters, &reporting.ConsoleReporter{Config: &cfg})
-	}
+	// Load and report out to all configured reporters. notionReporter is
+	// tracked separately from the reporters slice (not just as one more
+	// entry in it) so its repo-ownership sync - a Notion-specific
+	// capability outside the standard Reporter interface - can be
+	// dispatched below. See SendRepoOwnershipReport's own comment for why
+	// this isn't just another SendSummaryReport/SendTeamReports call.
+	reporters, notionReporter := buildReporters(&cfg)
 
 	reportTime := time.Now().UTC()
 	wg := new(sync.WaitGroup)
@@ -135,4 +110,45 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	wg.Wait()
 	log.Info().Msg("Done!")
+}
+
+// buildReporters constructs every reporter configured in cfg.Reporters,
+// returning them all as the shared Reporter interface, plus a separately
+// typed reference to the Notion one specifically (nil if not configured or
+// not enabled) - see Scan's own comment for why that second value exists.
+//
+// Extracted out of Scan purely to keep that function's cyclomatic
+// complexity within lint limits (cyclop) - this is straight-line
+// construction logic with no dependency on anything else in Scan's state,
+// so pulling it out doesn't change behavior, just where the branches are
+// counted.
+func buildReporters(cfg *configs.Config) ([]reporting.Reporter, *reporting.NotionReporter) {
+	log := logger.Get()
+	reporters := []reporting.Reporter{}
+	var notionReporter *reporting.NotionReporter
+
+	if slices.Contains(cfg.Reporters, "slack") {
+		slackReporter, err := reporting.NewSlackReporter(cfg)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to create Slack reporter.")
+		} else {
+			reporters = append(reporters, &slackReporter)
+		}
+	}
+
+	if slices.Contains(cfg.Reporters, "notion") {
+		nr, err := reporting.NewNotionReporter(cfg)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to create Notion reporter.")
+		} else {
+			reporters = append(reporters, &nr)
+			notionReporter = &nr
+		}
+	}
+
+	if slices.Contains(cfg.Reporters, "console") {
+		reporters = append(reporters, &reporting.ConsoleReporter{Config: cfg})
+	}
+
+	return reporters, notionReporter
 }

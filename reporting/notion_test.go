@@ -184,7 +184,7 @@ func TestSendNotionTeamReportContinuesAfterHistoryRowError(t *testing.T) {
 	// page ID to look up children under); the page write succeeds, so it
 	// gets the no-op stub.
 	mockClient.On("CreateDatabaseRow", "db-id", mock.Anything, mock.Anything).
-		Return("", fmt.Errorf("Notion API returned status 500")).Once()
+		Return("", fmt.Errorf("notion API returned status 500")).Once()
 	mockClient.On("ReplacePageContent", "foo-page-id", mock.Anything).Return(nil).Once()
 	stubNoopFindingAttachment(mockClient, "foo-page-id")
 
