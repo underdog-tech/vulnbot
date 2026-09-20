@@ -222,7 +222,13 @@ func TestCollectFindingsRoutesForksToForkProjects(t *testing.T) {
 	// The fork should be tracked separately, with its owner attached.
 	if assert.Equal(t, 1, len(ds.ForkProjects.Projects)) {
 		forkProject := ds.ForkProjects.Projects[0]
-		assert.Equal(t, "heart-of-gold-fork", forkProject.Name)
+		// Project.Name always goes through normalizeProjectName
+		// (querying/project.go) - lowercased, with both spaces and
+		// hyphens replaced by underscores. This is pre-existing,
+		// deliberate behavior in GetProject, not something specific to
+		// forks - every project's Name is normalized this way regardless
+		// of which path created it.
+		assert.Equal(t, "heart_of_gold_fork", forkProject.Name)
 		assert.Equal(t, "https://heart-of-gold/heart-of-gold-fork/security", forkProject.Link)
 		assert.True(t, forkProject.IsFork)
 		assert.Equal(t, "PUBLIC", forkProject.Visibility)
