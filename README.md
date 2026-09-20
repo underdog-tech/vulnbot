@@ -19,6 +19,7 @@ Our currently supported reporting systems are:
 
 * Console
 * Slack
+* Notion
 
 ## Getting Started
 
@@ -28,6 +29,7 @@ To get started, you will want to first set up a `.env` file with the following:
 SLACK_AUTH_TOKEN=insert_slack_token_here
 GITHUB_TOKEN=insert_github_token_here
 GITHUB_ORG=github_org_name
+NOTION_AUTH_TOKEN=insert_notion_token_here
 ```
 
 The `env.example` file can be used as a template for this.
@@ -56,3 +58,104 @@ to run this as part of a regularly scheduled CI/CD job.
 At the moment, our documentation consists primarily of developer and
 architecture docs. These can be found in the [docs/](docs/) folder, as well as
 at <https://pkg.go.dev/github.com/underdog-tech/vulnbot>.
+
+
+## Setting up Notion reporting
+
+Unlike Slack, Notion reporting requires a bit of manual setup ahead of time —
+vulnbot does not create any pages or databases on its own, so a human needs
+to create them first and share them with vulnbot's integration.
+
+1. [Create a Notion integration](https://www.notion.so/my-integrations) and
+   copy its internal integration token. Add it to your `.env` file as
+   `NOTION_AUTH_TOKEN`.
+2. Create a database in Notion for the shared report history, with the
+   following properties (Notion's default "Name" title property can stay
+   as-is):
+
+   | Property | Type |
+   |---|---|
+   | Team | Select |
+   | Date | Date |
+   | Total Findings | Number |
+   | Affected Repos | Number |
+   | Critical | Number |
+   | High | Number |
+   | Moderate | Number |
+   | Low | Number |
+   | Highest Severity | Select |
+
+3. **Optional:** create a second database for a repo ownership registry -
+   one row per non-archived repo in the org, showing which team(s) own it
+   (or "Unowned" if none do). This one only needs:
+
+   | Property | Type |
+   |---|---|
+   | Name | Title (Notion's default is fine, any name works) |
+   | Owning Teams | Multi-select |
+   | Visibility | Select |
+   | Is Fork | Checkbox |
+
+   Unlike the history database above, this one is kept as a **live
+   snapshot** - vulnbot updates existing rows in place, adds rows for new
+   repos, and archives rows for repos that no longer exist (renamed,
+   archived, or deleted since the last run), so it always reflects current
+   reality rather than accumulating one row per repo per run. Skip this
+   step entirely if you don't want this report.
+
+   Forked repos show up here too (tagged accordingly via "Is Fork"), even
+   though they're never vulnerability-scanned - this is the one place in
+   vulnbot that surfaces them at all.
+4. Create a page for the org-wide "latest summary" dashboard, and one page
+   per team that wants a persistent "latest" report page. These pages will
+   be fully overwritten by vulnbot on every run.
+5. Share the database (or databases) and each page with your integration:
+   open each one in Notion, click "•••" → "Connections", and add your
+   integration.
+6. Copy the resulting IDs (the 32-character ID in each page/database's URL)
+   into `config.toml`:
+
+   ```toml
+   reporters = ["console", "slack", "notion"]
+
+   notion_summary_page_id = "..."
+   notion_database_id = "..."
+   notion_ownership_database_id = "..."  # optional - omit to skip this report
+
+   [[team]]
+   name = "Some Team"
+   github_slug = "some-team"
+   notion_page_id = "..."  # optional - omit to skip a persistent page for this team
+   ```
+
+Every team still gets a row in the shared history database on each run,
+whether or not it has its own persistent page configured.
+
+### A note on what "unowned" means in the repo ownership registry
+
+A repo shows up tagged "Unowned" when vulnbot doesn't know of any team that
+owns it - which can mean either of two different things:
+- No GitHub team actually has Admin or Maintain access to the repo, **or**
+- A team *does* have that access on GitHub, but that team isn't listed in
+  this `config.toml`'s `[[team]]` entries, so vulnbot has no way to
+  associate the two.
+
+Worth checking `config.toml` for a missing team entry before assuming a
+repo genuinely needs a new owner assigned.
+
+### Running specific reporters on different schedules
+
+The `reporters` list in `config.toml` can be overridden per-invocation with
+the existing `--reporters` / `-r` CLI flag - useful if you want, say, Slack
+notifications hourly but only want to write to Notion once a day:
+
+```sh
+# Hourly cron job
+vulnbot scan --reporters=slack
+
+# Daily cron job
+vulnbot scan --reporters=notion
+```
+
+One `config.toml` covers everything; only the flag changes between
+schedules.

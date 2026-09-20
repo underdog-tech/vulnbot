@@ -14,22 +14,27 @@ import (
 const DEFAULT_SLACK_ICON = " "
 
 type TeamConfig struct {
-	Name          string
-	Github_slug   string
-	Slack_channel string
+	Name           string
+	Github_slug    string
+	Slack_channel  string
+	Notion_page_id string
 }
 
 type Config struct {
-	Default_slack_channel string
-	Github_org            string
-	Slack_auth_token      string
-	Github_token          string
-	Quiet                 bool
-	Verbose               int
-	Severity              []SeverityConfig
-	Ecosystem             []EcosystemConfig
-	Team                  []TeamConfig
-	Reporters             []string
+	Default_slack_channel        string
+	Github_org                   string
+	Slack_auth_token             string
+	Github_token                 string
+	Notion_auth_token            string
+	Notion_summary_page_id       string
+	Notion_database_id           string
+	Notion_ownership_database_id string
+	Quiet                        bool
+	Verbose                      int
+	Severity                     []SeverityConfig
+	Ecosystem                    []EcosystemConfig
+	Team                         []TeamConfig
+	Reporters                    []string
 }
 
 func fileExists(fname string) bool {

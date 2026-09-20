@@ -28,9 +28,24 @@ type ProjectCollection struct {
 type Project struct {
 	Name     string
 	Findings []*Finding
-	Link    string
+	Link     string
 	Owners   mapset.Set[configs.TeamConfig]
-	mu       sync.Mutex
+	// IsFork is only ever true for a Project that came through
+	// GithubDataSource.ForkProjects (see querying/github.go) - the main
+	// vulnerability-scanning query already excludes forks entirely, so any
+	// Project reaching the main ProjectCollection via that path is
+	// guaranteed non-fork.
+	IsFork bool
+	// Visibility is GitHub's repository visibility as returned by its
+	// GraphQL API's `visibility` field: "PUBLIC", "PRIVATE", or
+	// "INTERNAL" (GitHub Enterprise only). Deliberately not the older
+	// `isPrivate` boolean, which returns true for Internal repos too and
+	// so can't distinguish the two - verified against real reports of
+	// that ambiguity before choosing this field. Left as GitHub's raw
+	// value here; reporters are responsible for their own display
+	// formatting (see reporting.notionVisibilityLabel).
+	Visibility string
+	mu         sync.Mutex
 }
 
 // NewProject returns a new, empty project with no links or findings.

@@ -40,6 +40,7 @@ func (topics repositoryTopics) names() []string {
 type orgRepo struct {
 	Name                string
 	Url                 string
+	Visibility          string
 	VulnerabilityAlerts struct {
 		TotalCount int
 		PageInfo   struct {
@@ -80,7 +81,15 @@ type orgTeam struct {
 		Edges []struct {
 			Permission string
 			Node       struct {
-				Name             string
+				Name string
+				// Url and Visibility are fetched here specifically so a
+				// forked repo (see GithubDataSource.ForkProjects) can
+				// still get a working link and visibility label in the
+				// ownership registry, even though it's otherwise excluded
+				// from vulnerability scanning and never touched by
+				// orgRepo/orgVulnerabilityQuery above.
+				Url              string
+				Visibility       string
 				IsFork           bool
 				IsArchived       bool
 				RepositoryTopics repositoryTopics `graphql:"repositoryTopics(first: 10, last: null)"`
