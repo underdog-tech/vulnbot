@@ -342,6 +342,12 @@ func TestSendNotionTeamReportLinksRepoNameToItsURL(t *testing.T) {
 
 	project := querying.NewProject("repo1")
 	project.Link = "https://github.com/some-org/repo1"
+	// A repo with zero findings gets filtered out of the row entirely
+	// (see reposWithFindings) - it needs at least one to actually exercise
+	// the toggle-title-linking code this test is checking.
+	project.Findings = append(project.Findings, &querying.Finding{
+		Severity: configs.FindingSeverityLow, PackageName: "pkg",
+	})
 	repoReport := reporting.NewProjectFindingSummary(project)
 	summaryEntry := reporting.NewProjectFindingSummary(querying.NewProject(reporting.SUMMARY_KEY))
 
@@ -374,6 +380,13 @@ func TestSendNotionTeamReportFallsBackToPlainTextWhenRepoHasNoLink(t *testing.T)
 
 	project := querying.NewProject("repo1")
 	// project.Link intentionally left blank.
+	// A repo with zero findings gets filtered out of the row entirely
+	// (see reposWithFindings) - without this, the assertion below would
+	// trivially pass against an empty blocks slice without actually
+	// exercising the no-link fallback behavior it's meant to check.
+	project.Findings = append(project.Findings, &querying.Finding{
+		Severity: configs.FindingSeverityLow, PackageName: "pkg",
+	})
 	repoReport := reporting.NewProjectFindingSummary(project)
 	summaryEntry := reporting.NewProjectFindingSummary(querying.NewProject(reporting.SUMMARY_KEY))
 
