@@ -1081,11 +1081,24 @@ func buildTeamPageBlocks(
 type NotionReporter struct {
 	Config *configs.Config
 	Client NotionClientInterface
+	// TeamPagesOnly, when true, makes this reporter skip everything
+	// except each team's persistent page refresh: no org-wide summary
+	// page write, and no row written to the shared history database.
+	// Meant for running Notion reporting on a much more frequent schedule
+	// (e.g. every couple of hours) than the heavier summary/history/
+	// ownership work needs - see NewNotionTeamPagesReporter and the
+	// "notion-per-team" dispatch in internal/scan.go's buildReporters.
+	TeamPagesOnly bool
 }
 
-// NewNotionReporter returns a new NotionReporter instance. Both the auth
-// token and the shared history database ID are required; the summary page
-// and per-team pages are optional (skipped if not configured).
+// NewNotionReporter returns a new NotionReporter instance configured to do
+// everything this reporter supports: the org-wide summary page, each
+// team's row in the shared history database, and each team's persistent
+// page. Both the auth token and the shared history database ID are
+// required; the summary page and per-team pages are optional (skipped if
+// not configured). For a lighter-weight reporter restricted to just team
+// pages - meant to run on its own, more frequent schedule - see
+// NewNotionTeamPagesReporter instead.
 func NewNotionReporter(cfg *configs.Config) (NotionReporter, error) {
 	if cfg.Notion_auth_token == "" {
 		return NotionReporter{}, errors.New("no Notion token was provided")
@@ -1095,6 +1108,23 @@ func NewNotionReporter(cfg *configs.Config) (NotionReporter, error) {
 	}
 	client := NewNotionClient(cfg.Notion_auth_token)
 	return NotionReporter{Config: cfg, Client: client}, nil
+}
+
+// NewNotionTeamPagesReporter returns a NotionReporter restricted to only
+// ever refreshing each team's persistent page (TeamPagesOnly - see its own
+// comment). Unlike NewNotionReporter, this does NOT require
+// Notion_database_id, since that database is never touched in this mode -
+// only the auth token is required. Notion_summary_page_id,
+// Notion_database_id, and Notion_ownership_database_id can all be left set
+// in the shared config; they're simply never read by an instance created
+// this way, the same as they already are for teams with no Notion_page_id
+// configured.
+func NewNotionTeamPagesReporter(cfg *configs.Config) (NotionReporter, error) {
+	if cfg.Notion_auth_token == "" {
+		return NotionReporter{}, errors.New("no Notion token was provided")
+	}
+	client := NewNotionClient(cfg.Notion_auth_token)
+	return NotionReporter{Config: cfg, Client: client, TeamPagesOnly: true}, nil
 }
 
 // SendSummaryReport writes the org-wide summary to Notion by overwriting
@@ -1125,6 +1155,11 @@ func (n *NotionReporter) SendSummaryReport(
 ) error {
 	defer wg.Done()
 	log := logger.Get()
+
+	if n.TeamPagesOnly {
+		log.Debug().Msg("Skipping Notion summary report; this reporter instance is restricted to team pages only.")
+		return nil
+	}
 
 	if n.Client == nil {
 		log.Warn().Msg("No Notion client available. Summary report not sent.")
@@ -1169,37 +1204,39 @@ func (n *NotionReporter) SendTeamReports(
 			continue
 		}
 
-		// summary.AffectedRepos can't be trusted here: GroupTeamFindings
-		// (reporting/summary.go) only aggregates TotalCount onto the
-		// synthetic per-team summary entry, leaving its AffectedRepos at
-		// its zero value always. This is a pre-existing gap in vulnbot
-		// itself, not something introduced here - it's simply never
-		// surfaced before because SlackReporter's team report doesn't use
-		// AffectedRepos at all. Compute it directly from the real repos
-		// instead, the same workaround already used for
-		// GetTeamSeverityBreakdown().
-		findingSummary := FindingSummary{
-			TotalCount:       summary.TotalCount,
-			AffectedRepos:    getTeamAffectedRepoCount(repos),
-			VulnsByEcosystem: summary.VulnsByEcosystem,
-			VulnsBySeverity:  repos.GetTeamSeverityBreakdown(),
-		}
+		if !n.TeamPagesOnly {
+			// summary.AffectedRepos can't be trusted here: GroupTeamFindings
+			// (reporting/summary.go) only aggregates TotalCount onto the
+			// synthetic per-team summary entry, leaving its AffectedRepos at
+			// its zero value always. This is a pre-existing gap in vulnbot
+			// itself, not something introduced here - it's simply never
+			// surfaced before because SlackReporter's team report doesn't use
+			// AffectedRepos at all. Compute it directly from the real repos
+			// instead, the same workaround already used for
+			// GetTeamSeverityBreakdown().
+			findingSummary := FindingSummary{
+				TotalCount:       summary.TotalCount,
+				AffectedRepos:    getTeamAffectedRepoCount(repos),
+				VulnsByEcosystem: summary.VulnsByEcosystem,
+				VulnsBySeverity:  repos.GetTeamSeverityBreakdown(),
+			}
 
-		rowTitle := fmt.Sprintf("%s — %s", team.Name, reportTime.Format(DATE_LAYOUT))
-		rowProps := buildHistoryRowProperties(rowTitle, team.Name, findingSummary, reportTime)
-		// Each run's row gets this team's own affected-repo/finding detail
-		// embedded in its page body, so historical rows are a full
-		// snapshot of what was found that run - not just numeric columns.
-		// Unlike the persistent page below, the row only lists repos that
-		// actually have findings (see reposWithFindings): it's a record of
-		// what was flagged, not a full roster.
-		rowBlocks, rowRepos := buildRepoToggleBlocks(reposWithFindings(repos))
+			rowTitle := fmt.Sprintf("%s — %s", team.Name, reportTime.Format(DATE_LAYOUT))
+			rowProps := buildHistoryRowProperties(rowTitle, team.Name, findingSummary, reportTime)
+			// Each run's row gets this team's own affected-repo/finding detail
+			// embedded in its page body, so historical rows are a full
+			// snapshot of what was found that run - not just numeric columns.
+			// Unlike the persistent page below, the row only lists repos that
+			// actually have findings (see reposWithFindings): it's a record of
+			// what was flagged, not a full roster.
+			rowBlocks, rowRepos := buildRepoToggleBlocks(reposWithFindings(repos))
 
-		rowPageID, err := n.Client.CreateDatabaseRow(n.Config.Notion_database_id, rowProps, rowBlocks)
-		if err != nil {
-			log.Error().Err(err).Str("team", team.Name).Msg("Failed to write Notion history row for team.")
-		} else {
-			n.attachSeverityFindings(rowPageID, rowRepos)
+			rowPageID, err := n.Client.CreateDatabaseRow(n.Config.Notion_database_id, rowProps, rowBlocks)
+			if err != nil {
+				log.Error().Err(err).Str("team", team.Name).Msg("Failed to write Notion history row for team.")
+			} else {
+				n.attachSeverityFindings(rowPageID, rowRepos)
+			}
 		}
 
 		if team.Notion_page_id == "" {

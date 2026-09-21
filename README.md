@@ -60,6 +60,18 @@ architecture docs. These can be found in the [docs/](docs/) folder, as well as
 at <https://pkg.go.dev/github.com/underdog-tech/vulnbot>.
 
 
+<!--
+This is the new content to fold into README.md:
+- Add "Notion" to the "reporting systems" bullet list near the top.
+- Add this "Setting up Notion reporting" section after "Getting Started".
+-->
+
+Our currently supported reporting systems are:
+
+* Console
+* Slack
+* Notion
+
 ## Setting up Notion reporting
 
 Unlike Slack, Notion reporting requires a bit of manual setup ahead of time —
@@ -159,3 +171,25 @@ vulnbot scan --reporters=notion
 
 One `config.toml` covers everything; only the flag changes between
 schedules.
+
+### Refreshing team pages more often than everything else
+
+`notion` refreshes the org summary page, the history database, the
+ownership registry, and team pages, all in one run. If you want team
+pages to update much more frequently than that - say, every couple of
+hours, so teams see close-to-live results without the history database
+and ownership registry getting rewritten just as often - use
+`notion-per-team` instead, on its own schedule:
+
+```sh
+# Every couple of hours: just refresh team pages
+vulnbot scan --reporters=notion-per-team
+
+# Once a day: everything else (summary, history rows, ownership registry)
+vulnbot scan --reporters=notion
+```
+
+Both read the same `config.toml`. `notion-per-team` only needs
+`NOTION_AUTH_TOKEN` and each team's `notion_page_id` - it never touches
+`notion_database_id`, `notion_summary_page_id`, or
+`notion_ownership_database_id`, even if they're set in the shared config.

@@ -945,3 +945,69 @@ func TestSendNotionSummaryReportOmitsSlackFormattedHeader(t *testing.T) {
 	assert.NoError(t, err)
 	mockClient.AssertExpectations(t)
 }
+
+func TestNewNotionTeamPagesReporterRequiresAuthToken(t *testing.T) {
+	_, err := reporting.NewNotionTeamPagesReporter(&configs.Config{})
+	assert.Error(t, err, "No Notion token was provided.")
+}
+
+func TestNewNotionTeamPagesReporterSucceedsWithoutDatabaseID(t *testing.T) {
+	// Unlike NewNotionReporter, Notion_database_id should NOT be required
+	// here - this mode never touches that database at all.
+	_, err := reporting.NewNotionTeamPagesReporter(&configs.Config{
+		Notion_auth_token: "notion-token",
+	})
+	assert.NoError(t, err)
+}
+
+func TestSendSummaryReportSkippedWhenTeamPagesOnly(t *testing.T) {
+	mockClient := new(MockNotionClient)
+	cfg := configs.Config{
+		// Deliberately set, to prove it's ignored in this mode rather than
+		// just happening to be unset.
+		Notion_summary_page_id: "summary-page-id",
+	}
+	reporter := reporting.NotionReporter{Config: &cfg, Client: mockClient, TeamPagesOnly: true}
+
+	// No calls of any kind expected - not even a ReplacePageContent for
+	// the summary page, despite it being configured.
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	err := reporter.SendSummaryReport(
+		"Foo", 1, reporting.NewFindingSummary(), test.TEST_REPORT_TIME, test.TEST_TEAM_SUMMARIES, wg,
+	)
+	wg.Wait()
+
+	assert.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestSendTeamReportsSkipsHistoryRowButStillWritesPageWhenTeamPagesOnly(t *testing.T) {
+	teamFoo := configs.TeamConfig{Name: "foo", Github_slug: "foo", Notion_page_id: "foo-page-id"}
+	cfg := configs.Config{
+		// Deliberately set, to prove it's ignored in this mode rather than
+		// just happening to be unset.
+		Notion_database_id: "db-id",
+		Team:               []configs.TeamConfig{teamFoo},
+	}
+	mockClient := new(MockNotionClient)
+	reporter := reporting.NotionReporter{Config: &cfg, Client: mockClient, TeamPagesOnly: true}
+
+	repo1Report := reporting.NewProjectFindingSummary(querying.NewProject("repo1"))
+	summaryReport := reporting.NewProjectFindingSummary(querying.NewProject(reporting.SUMMARY_KEY))
+	teamReports := map[configs.TeamConfig]reporting.TeamProjectCollection{
+		teamFoo: {&repo1Report, &summaryReport},
+	}
+
+	mockClient.On("ReplacePageContent", "foo-page-id", mock.Anything).Return(nil).Once()
+	stubNoopFindingAttachment(mockClient, "foo-page-id")
+
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	err := reporter.SendTeamReports(teamReports, test.TEST_REPORT_TIME, wg)
+	wg.Wait()
+
+	assert.NoError(t, err)
+	mockClient.AssertExpectations(t)
+	mockClient.AssertNotCalled(t, "CreateDatabaseRow", mock.Anything, mock.Anything, mock.Anything)
+}

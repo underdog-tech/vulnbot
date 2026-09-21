@@ -146,6 +146,23 @@ func buildReporters(cfg *configs.Config) ([]reporting.Reporter, *reporting.Notio
 		}
 	}
 
+	// A separate, lighter-weight reporter that only ever refreshes team
+	// pages - no org summary, no history-database rows. Meant to run on
+	// its own, more frequent schedule than "notion" needs (e.g. every
+	// couple of hours via `--reporters=notion-per-team`, against the same
+	// config.toml used for a less-frequent `--reporters=notion` run).
+	// Deliberately NOT assigned to notionReporter above: repo-ownership
+	// syncing (see the ownership-report dispatch in Scan) should only
+	// ever run alongside the full "notion" reporter, never this one.
+	if slices.Contains(cfg.Reporters, "notion-per-team") {
+		npt, err := reporting.NewNotionTeamPagesReporter(cfg)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to create Notion (team-pages-only) reporter.")
+		} else {
+			reporters = append(reporters, &npt)
+		}
+	}
+
 	if slices.Contains(cfg.Reporters, "console") {
 		reporters = append(reporters, &reporting.ConsoleReporter{Config: cfg})
 	}
