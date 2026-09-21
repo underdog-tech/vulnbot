@@ -178,3 +178,63 @@ func TestCollectFindingsMultipleFindings(t *testing.T) {
 	assert.Equal(t, &expected, projects)
 
 }
+
+// TestCollectFindingsRoutesForksToForkProjects verifies that a forked repo
+// with an owning team is tracked in GithubDataSource.ForkProjects, not the
+// main ProjectCollection - it should never reach vulnerability-facing
+// reporting (SummarizeFindings/GroupTeamFindings and everything downstream
+// of them), only an ownership-specific consumer that explicitly reads
+// ForkProjects.
+func TestCollectFindingsRoutesForksToForkProjects(t *testing.T) {
+	server := getTestServer(
+		"testdata/single_project_single_finding_vulns.json",
+		"testdata/single_project_single_fork_owner.json",
+	)
+	defer server.Close()
+
+	crewTeam := configs.TeamConfig{
+		Name:        "Heart of Gold Crew",
+		Github_slug: "crew",
+	}
+	conf := configs.Config{
+		Team: []configs.TeamConfig{crewTeam},
+	}
+	conf.Github_org = "heart-of-gold"
+	conf.Github_token = "pangalactic-gargleblaster"
+
+	ds := querying.NewGithubDataSource(&conf)
+	ds.GhClient = githubv4.NewEnterpriseClient(server.URL, &http.Client{})
+
+	projects := querying.NewProjectCollection()
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	err := ds.CollectFindings(projects, wg)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// The main collection should be completely unaffected by the fork -
+	// only "zaphod" (from the vulnerability-findings fixture) should
+	// appear here, exactly as in the non-fork tests above.
+	expected := getTestProject()
+	assert.Equal(t, &expected, projects)
+
+	// The fork should be tracked separately, with its owner attached.
+	if assert.Equal(t, 1, len(ds.ForkProjects.Projects)) {
+		forkProject := ds.ForkProjects.Projects[0]
+		// Project.Name always goes through normalizeProjectName
+		// (querying/project.go) - lowercased, with both spaces and
+		// hyphens replaced by underscores. This is pre-existing,
+		// deliberate behavior in GetProject, not something specific to
+		// forks - every project's Name is normalized this way regardless
+		// of which path created it.
+		assert.Equal(t, "heart_of_gold_fork", forkProject.Name)
+		assert.Equal(t, "https://heart-of-gold/heart-of-gold-fork/security", forkProject.Link)
+		assert.True(t, forkProject.IsFork)
+		assert.Equal(t, "PUBLIC", forkProject.Visibility)
+
+		expectedOwners := mapset.NewSet[configs.TeamConfig]()
+		expectedOwners.Add(crewTeam)
+		assert.True(t, expectedOwners.Equal(forkProject.Owners))
+	}
+}
