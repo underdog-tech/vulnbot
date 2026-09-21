@@ -22,6 +22,20 @@ type GithubDataSource struct {
 	orgName  string
 	conf     *configs.Config
 	ctx      context.Context
+
+	// ForkProjects collects forked repos that have an owning team, kept
+	// entirely separate from the main ProjectCollection passed into
+	// CollectFindings. Forks are deliberately excluded from vulnerability
+	// scanning (see orgVulnerabilityQuery's isFork: false filter below,
+	// and shouldIgnoreRepository's isFork check), but ownership can still
+	// be tracked for them - this exists specifically so that ownership
+	// tracking (e.g. a Notion ownership registry) can see forks without
+	// them leaking into vulnerability-facing reporting (SummarizeFindings,
+	// GroupTeamFindings, and therefore Slack/Console/Notion vulnerability
+	// output), which never reads this field. Populated as a side effect of
+	// gatherRepoOwners, reusing the same team-repository query rather than
+	// a second round trip - see processRepoOwners.
+	ForkProjects *ProjectCollection
 }
 
 func NewGithubDataSource(conf *configs.Config) GithubDataSource {
@@ -32,10 +46,11 @@ func NewGithubDataSource(conf *configs.Config) GithubDataSource {
 	ghClient := githubv4.NewClient(httpClient)
 
 	return GithubDataSource{
-		GhClient: ghClient,
-		orgName:  conf.Github_org,
-		conf:     conf,
-		ctx:      context.Background(),
+		GhClient:     ghClient,
+		orgName:      conf.Github_org,
+		conf:         conf,
+		ctx:          context.Background(),
+		ForkProjects: NewProjectCollection(),
 	}
 }
 
@@ -103,6 +118,11 @@ func (gh *GithubDataSource) processRepoFindings(projects *ProjectCollection, rep
 	// Link directly to security page.
 	// There doesn't appear to be a GraphQL property for this link.
 	project.Link = repo.Url + "/security"
+	// Every repo reaching this method came from orgVulnerabilityQuery,
+	// which already filters isFork: false at the GraphQL level - so this
+	// is always accurate, not just a default.
+	project.IsFork = false
+	project.Visibility = repo.Visibility
 
 	log.Debug().Str("project", project.Name).Msg("Processing findings for project.")
 
@@ -189,22 +209,47 @@ func (gh *GithubDataSource) processRepoOwners(ownerQuery *orgRepoOwnerQuery, pro
 			continue
 		}
 		for _, repo := range team.Repositories.Edges {
+			// isFork is intentionally passed as false here, regardless of
+			// the repo's actual fork status: shouldIgnoreRepository's
+			// archived/disable-topic checks should still fully exclude a
+			// repo (from everywhere, including ForkProjects below), but
+			// whether it's a fork is handled separately just below,
+			// rather than folded into this one ignore/don't-ignore check.
 			if shouldIgnoreRepository(
 				repo.Node.IsArchived,
-				repo.Node.IsFork,
+				false,
 				repo.Node.RepositoryTopics.names(),
 			) {
 				log.Debug().
 					Str("Repo", repo.Node.Name).
-					Bool("IsFork", repo.Node.IsFork).
 					Bool("IsArchived", repo.Node.IsArchived).
 					Msg("Skipping untracked repository.")
 				continue
 			}
 			switch repo.Permission {
 			case "ADMIN", "MAINTAIN":
+				if repo.Node.IsFork {
+					// Ownership-registry-only - see ForkProjects' comment
+					// for why this is kept separate from the main
+					// ProjectCollection instead of just being included.
+					forkProject := gh.ForkProjects.GetProject(repo.Node.Name)
+					forkProject.Link = repo.Node.Url + "/security"
+					forkProject.IsFork = true
+					forkProject.Visibility = repo.Node.Visibility
+					forkProject.Owners.Add(teamConfig)
+					continue
+				}
 				project := projects.GetProject(repo.Node.Name)
 				project.Owners.Add(teamConfig)
+				// Defensive, not strictly required: a non-fork repo
+				// reaching here should already have IsFork/Visibility set
+				// by processRepoFindings earlier in the same
+				// CollectFindings call (the vulnerability-alerts pass
+				// runs first). Setting them again here too means this
+				// stays correct even if that ordering assumption ever
+				// changes.
+				project.IsFork = false
+				project.Visibility = repo.Node.Visibility
 			default:
 				continue
 			}
