@@ -1,5 +1,11 @@
 default_slack_channel = "asdfqwer"
 
+# Notion setup is manual: create the history database and any persistent
+# pages by hand in Notion, share them with your integration, and paste
+# their IDs here. See the README for the full setup walkthrough.
+notion_summary_page_id = "insert-pre-created-notion-summary-page-id"
+notion_database_id = "insert-pre-created-notion-history-database-id"
+
 # Configure the ecosystems we're reporting on
 [[ecosystem]]
 label = "Go"
@@ -43,3 +49,6 @@ slack_emoji = ":white_check_mark:"
 name = "Some Team"
 github_slug = "some-team"
 slack_channel = "abcdefgh"
+# Optional: omit this if the team doesn't want a persistent Notion page.
+# They'll still show up as rows in the shared history database.
+notion_page_id = "insert-pre-created-notion-page-id-for-this-team"

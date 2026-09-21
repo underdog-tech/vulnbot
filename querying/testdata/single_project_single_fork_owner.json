@@ -1,0 +1,31 @@
+{
+    "data": {
+        "organization": {
+            "teams": {
+                "totalCount": 0,
+                "pageInfo": { "hasNextPage": false },
+                "nodes": [
+                    {
+                        "name": "Heart of Gold Crew",
+                        "slug": "crew",
+                        "repositories": {
+                            "pageInfo": { "hasNextPage": false },
+                            "edges": [
+                                {
+                                    "permission": "MAINTAIN",
+                                    "node": {
+                                        "name": "heart-of-gold-fork",
+                                        "url": "https://heart-of-gold/heart-of-gold-fork",
+                                        "visibility": "PUBLIC",
+                                        "isFork": true,
+                                        "isArchived": false
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
